@@ -1,6 +1,7 @@
 import cors from "@elysiajs/cors";
 import { Elysia } from "elysia";
 import postgres from "postgres";
+
 const DB_URL = Bun.env.DB_URL;
 
 if (!DB_URL) {
@@ -30,26 +31,12 @@ const app = new Elysia({ prefix: "/api" })
   .get("databases/:dbName/tables/:name/data", async ({ params, query }) => {
     const { name, dbName } = params;
     const { perPage = "50", page = "0" } = query;
-
-    const offset = (
-      Number.parseInt(perPage, 10) * Number.parseInt(page, 10)
-    ).toString();
-
-    const rows = sql`
-            SELECT COUNT(*)
-            FROM ${sql(dbName)}.${sql(name)}`;
-
-    const tables = sql`
-            SELECT *
-            FROM ${sql(dbName)}.${sql(name)}
-            LIMIT ${perPage} OFFSET ${offset}`;
-
-    const [[count], data] = await Promise.all([rows, tables]);
-
-    return {
-      count: count.count,
-      data,
-    };
+    return getTableData({
+      tableName: name,
+      dbName,
+      perPage: Number.parseInt(perPage, 10),
+      page: Number.parseInt(page, 10),
+    });
   })
   .get("db/tables/:name/columns", async ({ params, query }) => {
     const { name } = params;
@@ -291,4 +278,33 @@ async function getDatabases() {
     FROM pg_catalog.pg_namespace;`;
 
   return result.map(({ nspname }) => nspname);
+}
+
+async function getTableData({
+  tableName,
+  dbName,
+  perPage,
+  page,
+}: {
+  tableName: string;
+  dbName: string;
+  perPage: number;
+  page: number;
+}) {
+  const offset = (perPage * page).toString();
+  const rows = sql`
+    SELECT COUNT(*)
+    FROM ${sql(dbName)}.${sql(tableName)}`;
+
+  const tables = sql`
+    SELECT *
+    FROM ${sql(dbName)}.${sql(tableName)}
+    LIMIT ${perPage} OFFSET ${offset}`;
+
+  const [[count], data] = await Promise.all([rows, tables]);
+
+  return {
+    count: count.count,
+    data,
+  };
 }
