@@ -48,7 +48,7 @@ export const DataTable = ({
   onPageIndexChange: (pageIndex: number) => void;
   onPageSizeChange: (pageSize: number) => void;
 }) => {
-  const { data: details } = useTableColumnsQuery({ name: tableName });
+  const { data: details } = useTableColumnsQuery({ dbName, tableName });
   const { data } = useTableDataQuery({
     tableName,
     dbName,

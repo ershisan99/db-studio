@@ -79,17 +79,20 @@ const tableForeignKeysColumns = [
 ];
 
 function TableDetailsTable() {
-  const { tableName: name } = Route.useParams();
-  const { data: tableColumns } = useTableColumnsQuery({ name });
-  const { data: tableIndexes } = useTableIndexesQuery({ name });
-  const { data: tableForeignKeys } = useTableForeignKeysQuery({ name });
+  const { tableName, dbName } = Route.useParams();
+  const { data: tableColumns } = useTableColumnsQuery({ tableName, dbName });
+  const { data: tableIndexes } = useTableIndexesQuery({ tableName, dbName });
+  const { data: tableForeignKeys } = useTableForeignKeysQuery({
+    tableName,
+    dbName,
+  });
 
   return (
     <div className={"p-3 w-layout"}>
       <div className={"flex flex-col gap-4 flex-1 max-h-full pb-3"}>
         <div className={"flex gap-4 items-center justify-between"}>
           <h1 className={"text-2xl font-bold flex items-center gap-2"}>
-            <Table2 /> {name}
+            <Table2 /> {tableName}
           </h1>
           <Link
             from={Route.fullPath}

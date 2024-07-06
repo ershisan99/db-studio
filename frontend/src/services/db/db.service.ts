@@ -2,8 +2,11 @@ import { getValuable } from "@/lib/utils";
 import { dbInstance } from "@/services/db/db.instance";
 import type {
   DatabasesResponse,
+  GetTableColumnsArgs,
   GetTableDataArgs,
   GetTableDataResponse,
+  GetTableForeignKeysArgs,
+  GetTableIndexesArgs,
   GetTablesListArgs,
   GetTablesListResponse,
   TableColumns,
@@ -32,17 +35,21 @@ class DbService {
       .json<GetTableDataResponse>();
   }
 
-  getTableColumns(name: string) {
-    return dbInstance.get(`api/db/tables/${name}/columns`).json<TableColumns>();
-  }
-
-  getTableIndexes(name: string) {
-    return dbInstance.get(`api/db/tables/${name}/indexes`).json<TableIndexes>();
-  }
-
-  getTableForeignKeys(name: string) {
+  getTableColumns({ dbName, tableName }: GetTableColumnsArgs) {
     return dbInstance
-      .get(`api/db/tables/${name}/foreign-keys`)
+      .get(`api/databases/${dbName}/tables/${tableName}/columns`)
+      .json<TableColumns>();
+  }
+
+  getTableIndexes({ dbName, tableName }: GetTableIndexesArgs) {
+    return dbInstance
+      .get(`api/databases/${dbName}/tables/${tableName}/indexes`)
+      .json<TableIndexes>();
+  }
+
+  getTableForeignKeys({ dbName, tableName }: GetTableForeignKeysArgs) {
+    return dbInstance
+      .get(`api/databases/${dbName}/tables/${tableName}/foreign-keys`)
       .json<TableForeignKeys>();
   }
 }

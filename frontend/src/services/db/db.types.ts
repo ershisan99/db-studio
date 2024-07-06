@@ -33,6 +33,12 @@ export type GetTableDataResponse = {
   data: Array<Record<string, any>>;
 };
 
+// Table Columns
+export type GetTableColumnsArgs = {
+  tableName: string;
+  dbName: string;
+};
+
 export type TableColumn = {
   column_name: string;
   data_type: string;
@@ -40,6 +46,12 @@ export type TableColumn = {
   column_comment?: any;
 };
 export type TableColumns = TableColumn[];
+
+// Table Indexes
+export type GetTableIndexesArgs = {
+  tableName: string;
+  dbName: string;
+};
 
 export type TableIndexEntry = {
   key: string;
@@ -50,6 +62,11 @@ export type TableIndexEntry = {
 };
 export type TableIndexes = TableIndexEntry[];
 
+// Table Foreign Keys
+export type GetTableForeignKeysArgs = {
+  tableName: string;
+  dbName: string;
+};
 export type TableForeignKey = {
   conname: string;
   deferrable: boolean;

@@ -5,7 +5,7 @@ import postgres from "postgres";
 const DB_URL = Bun.env.DB_URL;
 
 if (!DB_URL) {
-  console.error("DB_URL not found in environment variables");
+  console.error("❗DB_URL not found in environment variables");
   process.exit(1);
 }
 
@@ -28,34 +28,46 @@ const app = new Elysia({ prefix: "/api" })
 
     return new Response(JSON.stringify(tables, null, 2)).json();
   })
-  .get("databases/:dbName/tables/:name/data", async ({ params, query }) => {
-    const { name, dbName } = params;
-    const { perPage = "50", page = "0" } = query;
-    return getTableData({
-      tableName: name,
-      dbName,
-      perPage: Number.parseInt(perPage, 10),
-      page: Number.parseInt(page, 10),
-    });
-  })
-  .get("db/tables/:name/columns", async ({ params, query }) => {
-    const { name } = params;
+  .get(
+    "databases/:dbName/tables/:tableName/data",
+    async ({ params, query }) => {
+      const { tableName, dbName } = params;
+      const { perPage = "50", page = "0" } = query;
+      return getTableData({
+        tableName,
+        dbName,
+        perPage: Number.parseInt(perPage, 10),
+        page: Number.parseInt(page, 10),
+      });
+    },
+  )
+  .get(
+    "databases/:dbName/tables/:tableName/columns",
+    async ({ params, query }) => {
+      const { tableName, dbName } = params;
 
-    const columns = await getColumns(name);
-    return new Response(JSON.stringify(columns, null, 2)).json();
-  })
-  .get("db/tables/:name/indexes", async ({ params, query }) => {
-    const { name } = params;
+      const columns = await getColumns(dbName, tableName);
+      return new Response(JSON.stringify(columns, null, 2)).json();
+    },
+  )
+  .get(
+    "databases/:dbName/tables/:tableName/indexes",
+    async ({ params, query }) => {
+      const { tableName, dbName } = params;
 
-    const indexes = await getIndexes(name);
-    return new Response(JSON.stringify(indexes, null, 2)).json();
-  })
-  .get("db/tables/:name/foreign-keys", async ({ params, query }) => {
-    const { name } = params;
+      const indexes = await getIndexes(dbName, tableName);
+      return new Response(JSON.stringify(indexes, null, 2)).json();
+    },
+  )
+  .get(
+    "databases/:dbName/tables/:tableName/foreign-keys",
+    async ({ params, query }) => {
+      const { tableName, dbName } = params;
 
-    const foreignKeys = await getForeignKeys(name);
-    return new Response(JSON.stringify(foreignKeys, null, 2)).json();
-  })
+      const foreignKeys = await getForeignKeys(dbName, tableName);
+      return new Response(JSON.stringify(foreignKeys, null, 2)).json();
+    },
+  )
   .use(cors())
   .listen(3000);
 
@@ -63,13 +75,12 @@ console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`,
 );
 
-async function getIndexes(table: string) {
-  const returnObj = {};
-
+async function getIndexes(dbName: string, tableName: string) {
   const [tableOidResult] = await sql`
       SELECT oid 
-      FROM pg_class 
-      WHERE relname = ${table}
+      FROM pg_class
+      WHERE relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = ${dbName})
+      AND relname = ${tableName}
     `;
 
   const tableOid = tableOidResult.oid;
@@ -114,7 +125,7 @@ async function getIndexes(table: string) {
   });
 }
 
-async function getColumns(tableName: string) {
+async function getColumns(dbName: string, tableName: string) {
   return await sql`
       SELECT
           cols.column_name,
@@ -129,12 +140,14 @@ async function getColumns(tableName: string) {
           pg_catalog.pg_description AS pgd ON pgd.objoid = st.relid AND pgd.objsubid = cols.ordinal_position
       WHERE
           cols.table_name = ${tableName}
+      AND cols.table_schema = ${dbName}
+      
       ORDER BY
           cols.ordinal_position;
     `;
 }
 
-async function getForeignKeys(table: string) {
+async function getForeignKeys(dbName: string, tableName: string) {
   const result = await sql`
       SELECT 
         conname, 
@@ -147,7 +160,8 @@ async function getForeignKeys(table: string) {
           SELECT pc.oid 
           FROM pg_class AS pc 
           INNER JOIN pg_namespace AS pn ON (pn.oid = pc.relnamespace) 
-          WHERE pc.relname = ${table}
+          WHERE pc.relname = ${tableName}
+          AND pn.nspname = ${dbName}
         )
         AND contype = 'f'::char
       ORDER BY conkey, conname
@@ -157,10 +171,6 @@ async function getForeignKeys(table: string) {
     const match = row.definition.match(
       /FOREIGN KEY\s*\((.+)\)\s*REFERENCES (.+)\((.+)\)(.*)$/iy,
     );
-    console.log(match);
-    console.log("match[0]", match[0]);
-    console.log("match[1]", match[1]);
-    console.log("match[2]", match[2]);
     if (match) {
       const sourceColumns = match[1]
         .split(",")
@@ -168,7 +178,6 @@ async function getForeignKeys(table: string) {
       const targetTableMatch = match[2].match(
         /^(("([^"]|"")+"|[^"]+)\.)?"?("([^"]|"")+"|[^"]+)$/,
       );
-      console.log("targetTableMatch", targetTableMatch);
       const targetTable = targetTableMatch ? targetTableMatch[0].trim() : null;
       const targetColumns = match[3]
         .split(",")
