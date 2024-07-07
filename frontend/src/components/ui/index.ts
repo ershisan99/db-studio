@@ -3,6 +3,7 @@ export * from "./data-table-pagination";
 export * from "./dialog";
 export * from "./dropdown-menu";
 export * from "./input";
+export * from "./label";
 export * from "./mode-toggle";
 export * from "./select";
 export * from "./switch";
