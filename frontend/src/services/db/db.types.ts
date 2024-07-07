@@ -26,6 +26,8 @@ export type GetTableDataArgs = {
   dbName: string;
   perPage?: number;
   page?: number;
+  sortField?: string;
+  sortDesc?: boolean;
 };
 
 export type GetTableDataResponse = {

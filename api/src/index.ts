@@ -32,12 +32,14 @@ const app = new Elysia({ prefix: "/api" })
     "databases/:dbName/tables/:tableName/data",
     async ({ params, query }) => {
       const { tableName, dbName } = params;
-      const { perPage = "50", page = "0" } = query;
+      const { perPage = "50", page = "0", sortField, sortDesc } = query;
       return getTableData({
         tableName,
         dbName,
         perPage: Number.parseInt(perPage, 10),
         page: Number.parseInt(page, 10),
+        sortField,
+        sortDesc: sortDesc === "true",
       });
     },
   )
@@ -294,11 +296,15 @@ async function getTableData({
   dbName,
   perPage,
   page,
+  sortDesc,
+  sortField,
 }: {
   tableName: string;
   dbName: string;
   perPage: number;
   page: number;
+  sortField?: string;
+  sortDesc?: boolean;
 }) {
   const offset = (perPage * page).toString();
   const rows = sql`
@@ -308,7 +314,13 @@ async function getTableData({
   const tables = sql`
     SELECT *
     FROM ${sql(dbName)}.${sql(tableName)}
-    LIMIT ${perPage} OFFSET ${offset}`;
+    ${
+      sortField
+        ? sql`ORDER BY ${sql(sortField)} ${sortDesc ? sql`DESC` : sql`ASC`}`
+        : sql``
+    }
+    LIMIT ${perPage} OFFSET ${offset}
+    `;
 
   const [[count], data] = await Promise.all([rows, tables]);
 

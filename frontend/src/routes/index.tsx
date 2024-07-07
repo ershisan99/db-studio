@@ -1,26 +1,16 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute('/')({
+export const Route = createFileRoute("/")({
   component: Index,
-})
+});
 
 function Index() {
-  const { dbSchema } = Route.useSearch()
-  if (!dbSchema) {
-    return (
-      <div className="p-2">
-        <h3>Welcome Home!</h3>
-      </div>
-    )
-  }
-  return <TableView dbSchema={dbSchema} />
-}
-
-function TableView({ dbSchema }: { dbSchema: string }) {
   return (
-    <div className="p-2">
-      <h3>Table View</h3>
-      {dbSchema}
+    <div className="p-2 h-layout w-layout grid place-items-center">
+      <div>
+        <h1 className={"text-xl text-center font-semibold"}>Welcome!</h1>
+        <p>Select a database to continue.</p>
+      </div>
     </div>
-  )
+  );
 }

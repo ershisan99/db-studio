@@ -1,4 +1,4 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { DB_QUERY_KEYS } from "./db.query-keys";
 import { dbService } from "./db.service";
 import type {
@@ -13,7 +13,6 @@ export const useDatabasesListQuery = () => {
   return useQuery({
     queryKey: [DB_QUERY_KEYS.DATABASES.ALL],
     queryFn: () => dbService.getDatabasesList(),
-    placeholderData: keepPreviousData,
   });
 };
 
@@ -22,7 +21,6 @@ export const useTablesListQuery = (args: GetTablesListArgs) => {
     queryKey: [DB_QUERY_KEYS.TABLES.ALL, args],
     queryFn: () => dbService.getTablesList(args),
     enabled: !!args.dbName,
-    placeholderData: keepPreviousData,
   });
 };
 

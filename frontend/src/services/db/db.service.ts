@@ -27,10 +27,17 @@ class DbService {
       .json<GetTablesListResponse>();
   }
 
-  getTableData({ dbName, tableName, page, perPage }: GetTableDataArgs) {
+  getTableData({
+    dbName,
+    tableName,
+    page,
+    perPage,
+    sortField,
+    sortDesc,
+  }: GetTableDataArgs) {
     return dbInstance
       .get(`api/databases/${dbName}/tables/${tableName}/data`, {
-        searchParams: getValuable({ perPage, page }),
+        searchParams: getValuable({ perPage, page, sortField, sortDesc }),
       })
       .json<GetTableDataResponse>();
   }

@@ -18,15 +18,9 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
 import { Database, Rows3, Table2 } from "lucide-react";
-import { z } from "zod";
-
-const searchSchema = z.object({
-  dbSchema: z.string().optional().catch(""),
-});
 
 export const Route = createRootRoute({
   component: Root,
-  validateSearch: (search) => searchSchema.parse(search),
 });
 
 function Root() {
@@ -36,8 +30,8 @@ function Root() {
   const dbName = params.dbName ?? "";
   const navigate = useNavigate({ from: Route.fullPath });
 
-  const handleSelectedSchema = (schema: string) => {
-    void navigate({ to: "/db/$dbName/tables", params: { dbName: schema } });
+  const handleSelectedDb = (dbName: string) => {
+    void navigate({ to: "/db/$dbName/tables", params: { dbName } });
   };
 
   const { data: tables } = useTablesListQuery({ dbName });
@@ -52,15 +46,15 @@ function Root() {
           </Link>
         </header>
         <aside className={"p-3"}>
-          <Select value={dbName} onValueChange={handleSelectedSchema}>
+          <Select value={dbName} onValueChange={handleSelectedDb}>
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Database Schema" />
+              <SelectValue placeholder="Database" />
             </SelectTrigger>
             <SelectContent>
-              {data?.map((schema) => {
+              {data?.map((db) => {
                 return (
-                  <SelectItem value={schema} key={schema}>
-                    {schema}
+                  <SelectItem value={db} key={db}>
+                    {db}
                   </SelectItem>
                 );
               })}

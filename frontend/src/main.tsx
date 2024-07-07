@@ -27,7 +27,10 @@ if (rootElement && !rootElement.innerHTML) {
     <StrictMode>
       <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
         <QueryClientProvider client={queryClient}>
-          <ReactQueryDevtools initialIsOpen={false} />
+          <ReactQueryDevtools
+            initialIsOpen={false}
+            buttonPosition={"top-right"}
+          />
           <RouterProvider router={router} />
         </QueryClientProvider>
       </ThemeProvider>

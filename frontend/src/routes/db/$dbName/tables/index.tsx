@@ -194,7 +194,7 @@ function Component() {
                                 )}
                             <ArrowUp
                               className={cn(
-                                "ml-2 size-4 opacity-0",
+                                "ml-2 size-4 opacity-0 transition-transform",
                                 sorted && "opacity-100",
                                 (sorted as string) === "desc" && "rotate-180",
                               )}

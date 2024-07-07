@@ -1,5 +1,10 @@
 import {
+  Button,
   DataTablePagination,
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
   Table,
   TableBody,
   TableCell,
@@ -13,12 +18,14 @@ import {
   type ColumnDef,
   type OnChangeFn,
   type PaginationState,
+  type SortingState,
+  type VisibilityState,
   flexRender,
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Rows3 } from "lucide-react";
-import { useMemo } from "react";
+import { ArrowUp, Rows3 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { z } from "zod";
 
 function isUrl(value: string) {
@@ -48,12 +55,17 @@ export const DataTable = ({
   onPageIndexChange: (pageIndex: number) => void;
   onPageSizeChange: (pageSize: number) => void;
 }) => {
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+
   const { data: details } = useTableColumnsQuery({ dbName, tableName });
   const { data } = useTableDataQuery({
     tableName,
     dbName,
     perPage: pageSize,
     page: pageIndex,
+    sortDesc: sorting[0]?.desc,
+    sortField: sorting[0]?.id,
   });
 
   const paginationUpdater: OnChangeFn<PaginationState> = (args) => {
@@ -137,8 +149,13 @@ export const DataTable = ({
     columns,
     columnResizeMode: "onChange",
     getCoreRowModel: getCoreRowModel(),
+    onColumnVisibilityChange: setColumnVisibility,
     rowCount: data?.count ?? 0,
+    manualSorting: true,
+    onSortingChange: setSorting,
     state: {
+      sorting,
+      columnVisibility,
       pagination: {
         pageIndex,
         pageSize,
@@ -154,6 +171,30 @@ export const DataTable = ({
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Rows3 /> {tableName}
         </h1>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="ml-auto">
+              Columns
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {table
+              .getAllColumns()
+              .filter((column) => column.getCanHide())
+              .map((column) => {
+                return (
+                  <DropdownMenuCheckboxItem
+                    key={column.id}
+                    onSelect={(e) => e.preventDefault()}
+                    checked={column.getIsVisible()}
+                    onCheckedChange={column.toggleVisibility}
+                  >
+                    {column.id}
+                  </DropdownMenuCheckboxItem>
+                );
+              })}
+          </DropdownMenuContent>
+        </DropdownMenu>
         <p>
           Rows: <strong>{data?.count}</strong>
         </p>
@@ -172,20 +213,41 @@ export const DataTable = ({
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
+                  const sorted = header.column.getIsSorted();
+
                   return (
                     <TableHead
-                      className={"relative"}
+                      className={"p-0 relative"}
                       key={header.id}
                       style={{
                         width: header.getSize(),
                       }}
                     >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
+                      <Button
+                        variant="ghost"
+                        onClick={header.column.getToggleSortingHandler()}
+                        title={
+                          header.column.getNextSortingOrder() === "asc"
+                            ? "Sort ascending"
+                            : header.column.getNextSortingOrder() === "desc"
+                              ? "Sort descending"
+                              : "Clear sort"
+                        }
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )}
+                        <ArrowUp
+                          className={cn(
+                            "ml-2 size-4 opacity-0 transition-transform",
+                            sorted && "opacity-100",
+                            (sorted as string) === "desc" && "rotate-180",
                           )}
+                        />
+                      </Button>
                       <div
                         {...{
                           onDoubleClick: () => header.column.resetSize(),
