@@ -14,6 +14,7 @@ import {
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { useTableColumnsQuery, useTableDataQuery } from "@/services/db";
+import { useSettingsStore } from "@/state";
 import {
   type ColumnDef,
   type OnChangeFn,
@@ -55,6 +56,9 @@ export const DataTable = ({
   onPageIndexChange: (pageIndex: number) => void;
   onPageSizeChange: (pageSize: number) => void;
 }) => {
+  const formatDates = useSettingsStore.use.formatDates();
+  const showImagesPreview = useSettingsStore.use.showImagesPreview();
+
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
@@ -108,10 +112,10 @@ export const DataTable = ({
       cell: ({ row }) => {
         const value = row.getValue(column_name) as any;
         let finalValue = value;
-        if (udt_name === "timestamp") {
+        if (formatDates && udt_name === "timestamp") {
           finalValue = new Date(value as string).toLocaleString();
         }
-        if (typeof value === "string" && isUrl(value)) {
+        if (showImagesPreview && typeof value === "string" && isUrl(value)) {
           const isImage = isImageUrl(value);
           return (
             <a
@@ -120,7 +124,9 @@ export const DataTable = ({
               className={cn("hover:underline")}
               rel="noreferrer"
             >
-              <div className={"flex items-center break-all gap-4"}>
+              <div
+                className={"flex items-center justify-between break-all gap-4"}
+              >
                 {value}
                 {isImage && (
                   <img
@@ -142,7 +148,7 @@ export const DataTable = ({
         );
       },
     })) as ColumnDef<any>[];
-  }, [details]);
+  }, [details, formatDates, showImagesPreview]);
 
   const table = useReactTable({
     data: data?.data ?? [],

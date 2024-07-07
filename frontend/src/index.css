@@ -3,6 +3,9 @@
 @tailwind utilities;
 
 @layer base {
+  input[type=number] {
+    -moz-appearance:textfield;
+  }
   :root {
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
@@ -69,21 +72,28 @@
 @layer base {
   :root {
     text-underline-position: under;
+    --sidebar-width: 264px;
   }
+  
+  .sidebar-closed {
+    --sidebar-width: 0;
+  }
+  
   .grid-rows-layout {
     grid-template-rows: 60px 1fr;
   }
 
   .grid-cols-layout {
-    grid-template-columns: 264px 1fr;
+    grid-template-columns: var(--sidebar-width) 1fr;
   }
 
+
   .max-w-layout {
-    max-width: calc(100vw - 264px);
+    max-width: calc(100vw - var(--sidebar-width));
   }
 
   .w-layout {
-    width: calc(100vw - 264px);
+    width: calc(100vw - var(--sidebar-width));
   }
   .resizer {
     position: absolute;
