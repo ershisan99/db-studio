@@ -12,6 +12,7 @@
 
 import { Route as rootRoute } from './routes/__root'
 import { Route as IndexImport } from './routes/index'
+import { Route as RawIndexImport } from './routes/raw/index'
 import { Route as DbDbNameTablesIndexImport } from './routes/db/$dbName/tables/index'
 import { Route as DbDbNameTablesTableNameIndexImport } from './routes/db/$dbName/tables/$tableName/index'
 import { Route as DbDbNameTablesTableNameDataImport } from './routes/db/$dbName/tables/$tableName/data'
@@ -20,6 +21,11 @@ import { Route as DbDbNameTablesTableNameDataImport } from './routes/db/$dbName/
 
 const IndexRoute = IndexImport.update({
   path: '/',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const RawIndexRoute = RawIndexImport.update({
+  path: '/raw/',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -51,6 +57,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexImport
       parentRoute: typeof rootRoute
     }
+    '/raw/': {
+      id: '/raw/'
+      path: '/raw'
+      fullPath: '/raw'
+      preLoaderRoute: typeof RawIndexImport
+      parentRoute: typeof rootRoute
+    }
     '/db/$dbName/tables/': {
       id: '/db/$dbName/tables/'
       path: '/db/$dbName/tables'
@@ -79,6 +92,7 @@ declare module '@tanstack/react-router' {
 
 export const routeTree = rootRoute.addChildren({
   IndexRoute,
+  RawIndexRoute,
   DbDbNameTablesIndexRoute,
   DbDbNameTablesTableNameDataRoute,
   DbDbNameTablesTableNameIndexRoute,
@@ -93,6 +107,7 @@ export const routeTree = rootRoute.addChildren({
       "filePath": "__root.tsx",
       "children": [
         "/",
+        "/raw/",
         "/db/$dbName/tables/",
         "/db/$dbName/tables/$tableName/data",
         "/db/$dbName/tables/$tableName/"
@@ -100,6 +115,9 @@ export const routeTree = rootRoute.addChildren({
     },
     "/": {
       "filePath": "index.tsx"
+    },
+    "/raw/": {
+      "filePath": "raw/index.tsx"
     },
     "/db/$dbName/tables/": {
       "filePath": "db/$dbName/tables/index.tsx"

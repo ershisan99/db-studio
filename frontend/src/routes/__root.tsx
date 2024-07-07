@@ -61,6 +61,9 @@ function Root() {
             <Link to="/" className="[&.active]:font-bold">
               Home
             </Link>
+            <Link to="/raw" className="[&.active]:font-bold">
+              Raw
+            </Link>
           </div>
           <div className={"flex items-center gap-2"}>
             <ModeToggle />
