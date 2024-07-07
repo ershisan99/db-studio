@@ -103,7 +103,7 @@ function TableDetailsTable() {
             }}
             className={cn("flex gap-2 items-center", "hover:underline")}
           >
-            Explore data <ArrowRight />
+            Explore data <ArrowRight className={"size-4"} />
           </Link>
         </div>
 

@@ -70,7 +70,12 @@ export function SettingsDialog() {
             }
           >
             <div className={"space-y-0.5"}>
-              <Label htmlFor={"format-dates"}>Automatically format dates</Label>
+              <Label
+                className={"font-medium text-base"}
+                htmlFor={"format-dates"}
+              >
+                Automatically format dates
+              </Label>
               <p className={"text-sm text-muted-foreground"}>
                 When turned on, will show timestamp cells in tables in a human
                 readable format
@@ -89,7 +94,10 @@ export function SettingsDialog() {
             }
           >
             <div className={"space-y-0.5"}>
-              <Label htmlFor={"show-images-preview"}>
+              <Label
+                htmlFor={"show-images-preview"}
+                className={"font-medium text-base"}
+              >
                 Show previews for images
               </Label>
               <p className={"text-sm text-muted-foreground"}>
@@ -113,7 +121,9 @@ export function SettingsDialog() {
             }
           >
             <div className={"space-y-0.5"}>
-              <Label>Pagination options</Label>
+              <Label className={"font-medium text-base"}>
+                Pagination options
+              </Label>
               <p className={"text-sm text-muted-foreground"}>
                 Add or remove options for the amount of rows per page
               </p>

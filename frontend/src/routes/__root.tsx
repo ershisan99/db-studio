@@ -20,13 +20,7 @@ import {
   useParams,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
-import {
-  Database,
-  PanelLeft,
-  PanelLeftClose,
-  Rows3,
-  Table2,
-} from "lucide-react";
+import { Database, PanelLeft, PanelLeftClose, Rows3 } from "lucide-react";
 
 export const Route = createRootRoute({
   component: Root,
@@ -97,13 +91,17 @@ function Root() {
                     to={"/db/$dbName/tables"}
                     params={{ dbName }}
                     activeOptions={{ exact: true }}
+                    title={dbName}
                     className={cn(
                       "flex items-center gap-2 rounded py-1.5 pl-1.5",
                       "hover:bg-muted",
                       "[&.active]:bg-muted [&.active]:font-semibold",
                     )}
                   >
-                    <Database className={"size-4"} /> {dbName}
+                    <Database className={"size-4"} />
+                    <span className={"max-w-full inline-block truncate"}>
+                      {dbName}
+                    </span>
                   </Link>
                 )}
                 {tables?.map((table) => {
@@ -116,19 +114,20 @@ function Root() {
                     >
                       <Link
                         className={cn(
-                          "w-full flex gap-2 items-center",
+                          "max-w-full inline-block truncate",
                           "hover:underline",
-                          "[&.active]:font-semibold",
+                          "[&.active]:font-medium",
                         )}
+                        title={table.table_name}
                         to={"/db/$dbName/tables/$tableName"}
                         params={{ tableName: table.table_name, dbName: dbName }}
                       >
-                        <Table2 className={"size-4 shrink-0"} />
                         {table.table_name}
                       </Link>
                       <Link
                         className={cn(
-                          "hover:underline shrink-0",
+                          "shrink-0",
+                          "hover:underline",
                           buttonVariants({ variant: "ghost", size: "iconSm" }),
                           "[&.active]:bg-muted",
                         )}
