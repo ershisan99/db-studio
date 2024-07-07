@@ -1,5 +1,5 @@
 import cors from "@elysiajs/cors";
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 import postgres from "postgres";
 
 const DB_URL = Bun.env.DB_URL;
@@ -68,6 +68,19 @@ const app = new Elysia({ prefix: "/api" })
 
       const foreignKeys = await getForeignKeys(dbName, tableName);
       return new Response(JSON.stringify(foreignKeys, null, 2)).json();
+    },
+  )
+  .post(
+    "raw",
+    async ({ body }) => {
+      const { query } = body;
+      const result = await sql.unsafe(query);
+      return new Response(JSON.stringify(result, null, 2)).json();
+    },
+    {
+      body: t.Object({
+        query: t.String(),
+      }),
     },
   )
   .use(cors())
