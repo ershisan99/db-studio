@@ -1,4 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { HTTPError } from "ky";
+import { toast } from "sonner";
 import { DB_QUERY_KEYS } from "./db.query-keys";
 import { dbService } from "./db.service";
 import type {
@@ -7,6 +9,7 @@ import type {
   GetTableForeignKeysArgs,
   GetTableIndexesArgs,
   GetTablesListArgs,
+  QueryRawSqlArgs,
 } from "./db.types";
 
 export const useDatabasesListQuery = () => {
@@ -73,5 +76,21 @@ export const useTableForeignKeysQuery = (args: GetTableForeignKeysArgs) => {
     queryKey: [DB_QUERY_KEYS.TABLES.FOREIGN_KEYS, args],
     queryFn: () => dbService.getTableForeignKeys(args),
     enabled: !!args.tableName && !!args.dbName,
+  });
+};
+
+export const useQueryRawSqlMutation = () => {
+  return useMutation({
+    onError: async (error) => {
+      if (error instanceof HTTPError) {
+        const errorJson = await error.response.json();
+        console.log(errorJson);
+        toast.error(errorJson.message);
+        return;
+      }
+      toast.error(error.message);
+    },
+    mutationFn: ({ query }: QueryRawSqlArgs) =>
+      dbService.queryRawSql({ query }),
   });
 };

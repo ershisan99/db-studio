@@ -9,6 +9,8 @@ import type {
   GetTableIndexesArgs,
   GetTablesListArgs,
   GetTablesListResponse,
+  QueryRawSqlArgs,
+  QueryRawSqlResponse,
   TableColumns,
   TableForeignKeys,
   TableIndexes,
@@ -58,6 +60,14 @@ class DbService {
     return dbInstance
       .get(`api/databases/${dbName}/tables/${tableName}/foreign-keys`)
       .json<TableForeignKeys>();
+  }
+
+  queryRawSql({ query }: QueryRawSqlArgs) {
+    return dbInstance
+      .post("api/raw", {
+        json: { query },
+      })
+      .json<QueryRawSqlResponse>();
   }
 }
 

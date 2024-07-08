@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui";
-import { cn } from "@/lib/utils";
+import { cn, isImageUrl, isUrl } from "@/lib/utils";
 import { useTableColumnsQuery, useTableDataQuery } from "@/services/db";
 import { useSettingsStore } from "@/state";
 import {
@@ -27,19 +27,6 @@ import {
 } from "@tanstack/react-table";
 import { ArrowUp, Rows3 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { z } from "zod";
-
-function isUrl(value: string) {
-  return z.string().url().safeParse(value).success;
-}
-
-const imageUrlRegex = new RegExp(
-  /(http)?s?:?(\/\/[^"']*\.(?:png|jpg|jpeg|gif|svg|webp|bmp))/i,
-);
-
-function isImageUrl(value: string) {
-  return value.match(imageUrlRegex);
-}
 
 export const DataTable = ({
   tableName,

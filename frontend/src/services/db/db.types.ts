@@ -69,6 +69,13 @@ export type GetTableForeignKeysArgs = {
   tableName: string;
   dbName: string;
 };
+
+export type QueryRawSqlArgs = {
+  query: string;
+};
+
+export type QueryRawSqlResponse = Array<Record<string, any>>;
+
 export type TableForeignKey = {
   conname: string;
   deferrable: boolean;
@@ -80,4 +87,5 @@ export type TableForeignKey = {
   on_delete: string;
   on_update: string;
 };
+
 export type TableForeignKeys = TableForeignKey[];

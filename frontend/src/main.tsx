@@ -8,6 +8,7 @@ import "@fontsource/inter/600.css";
 import "@fontsource/inter/700.css";
 import "@fontsource/inter/800.css";
 import "./index.css";
+import { Toaster } from "@/components/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 // Import the generated route tree
@@ -35,6 +36,7 @@ if (rootElement && !rootElement.innerHTML) {
           initialIsOpen={false}
           buttonPosition={"bottom-left"}
         />
+        <Toaster richColors />
         <RouterProvider router={router} />
       </QueryClientProvider>
     </StrictMode>,
