@@ -1,5 +1,6 @@
-import ky from 'ky'
+import ky from "ky";
 
 export const dbInstance = ky.create({
-  prefixUrl: 'http://localhost:3000'
-})
+  credentials: "include",
+  prefixUrl: "http://localhost:3000",
+});

@@ -9,6 +9,8 @@ import type {
   GetTableIndexesArgs,
   GetTablesListArgs,
   GetTablesListResponse,
+  LoginArgs,
+  LoginResponse,
   QueryRawSqlArgs,
   QueryRawSqlResponse,
   TableColumns,
@@ -17,6 +19,12 @@ import type {
 } from "@/services/db/db.types";
 
 class DbService {
+  login(data: LoginArgs) {
+    return dbInstance
+      .post("api/auth/login", { json: data })
+      .json<LoginResponse>();
+  }
+
   getDatabasesList() {
     return dbInstance.get("api/databases").json<DatabasesResponse>();
   }

@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useDatabasesListQuery, useTablesListQuery } from "@/services/db";
 import { useUiStore } from "@/state";
+import { useSessionStore } from "@/state/db-session-store";
 import {
   Link,
   Outlet,
@@ -29,6 +30,8 @@ export const Route = createRootRoute({
 function Root() {
   const showSidebar = useUiStore.use.showSidebar();
   const toggleSidebar = useUiStore.use.toggleSidebar();
+  const sessions = useSessionStore.use.sessions();
+  const currentSessionId = useSessionStore.use.currentSessionId();
 
   const { data } = useDatabasesListQuery();
   const params = useParams({ strict: false });
@@ -40,7 +43,6 @@ function Root() {
   };
 
   const { data: tables } = useTablesListQuery({ dbName });
-
   return (
     <>
       <div
@@ -74,8 +76,33 @@ function Root() {
         <aside className={"p-3"}>
           {showSidebar && (
             <>
+              {sessions.length > 0 && (
+                <Select
+                  value={currentSessionId ? currentSessionId.toString() : ""}
+                >
+                  <SelectTrigger className="max-w-full">
+                    <SelectValue placeholder="Select a Database" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sessions?.map((session) => {
+                      const text =
+                        "connectionString" in session
+                          ? session.connectionString
+                          : `${session.host}:${session.port}/${session.database}`;
+                      return (
+                        <SelectItem
+                          value={session.id.toString()}
+                          key={session.id}
+                        >
+                          {text}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              )}
               <Select value={dbName} onValueChange={handleSelectedDb}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full mt-4">
                   <SelectValue placeholder="Select a Database" />
                 </SelectTrigger>
                 <SelectContent>

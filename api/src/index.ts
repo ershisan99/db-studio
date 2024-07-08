@@ -1,39 +1,90 @@
 import cors from "@elysiajs/cors";
+import { jwt } from "@elysiajs/jwt";
 import { Elysia, t } from "elysia";
-import postgres from "postgres";
+import { postgresDriver } from "./drivers/postgres";
 
-const DB_URL = Bun.env.DB_URL;
-
-if (!DB_URL) {
-  console.error("❗DB_URL not found in environment variables");
-  process.exit(1);
-}
-
-const sql = postgres(DB_URL);
-
-const [{ version }] = await sql`SELECT version()`;
-console.log("pg version: ", version);
-
+const credentialsSchema = t.Union([
+  t.Object({
+    username: t.String(),
+    password: t.String(),
+    host: t.String(),
+    type: t.String(),
+    port: t.String(),
+    database: t.String(),
+    ssl: t.String(),
+  }),
+  t.Object({
+    connectionString: t.String(),
+  }),
+]);
 const app = new Elysia({ prefix: "/api" })
+  .use(
+    jwt({
+      name: "jwt",
+      secret: "Fischl von Luftschloss Narfidort",
+      schema: credentialsSchema,
+    }),
+  )
   .get("/", () => "Hello Elysia")
-  .get("/databases", async () => {
-    const databases = await getDatabases();
+  .post(
+    "/auth/login",
+    async ({ body, jwt, cookie: { auth } }) => {
+      const databases = await postgresDriver.getAllDatabases(body);
+
+      auth.set({
+        value: await jwt.sign(body),
+        httpOnly: true,
+      });
+
+      return { success: true, databases };
+    },
+    { body: credentialsSchema },
+  )
+  .get("/databases", async ({ jwt, set, cookie: { auth } }) => {
+    const credentials = await jwt.verify(auth.value);
+
+    if (!credentials) {
+      set.status = 401;
+      return "Unauthorized";
+    }
+
+    const databases = await postgresDriver.getAllDatabases(credentials);
     return new Response(JSON.stringify(databases, null, 2)).json();
   })
-  .get("/databases/:dbName/tables", async ({ query, params }) => {
-    const { sortField, sortDesc } = query;
-    const { dbName } = params;
+  .get(
+    "/databases/:dbName/tables",
+    async ({ query, params, jwt, set, cookie: { auth } }) => {
+      const { sortField, sortDesc } = query;
+      const { dbName } = params;
+      const credentials = await jwt.verify(auth.value);
 
-    const tables = await getTables(dbName, sortField, sortDesc === "true");
+      if (!credentials) {
+        set.status = 401;
+        return "Unauthorized";
+      }
 
-    return new Response(JSON.stringify(tables, null, 2)).json();
-  })
+      const tables = await postgresDriver.getAllTables(credentials, {
+        dbName,
+        sortField,
+        sortDesc: sortDesc === "true",
+      });
+
+      return new Response(JSON.stringify(tables, null, 2)).json();
+    },
+  )
   .get(
     "databases/:dbName/tables/:tableName/data",
-    async ({ params, query }) => {
+    async ({ query, params, jwt, set, cookie: { auth } }) => {
       const { tableName, dbName } = params;
       const { perPage = "50", page = "0", sortField, sortDesc } = query;
-      return getTableData({
+      const credentials = await jwt.verify(auth.value);
+
+      if (!credentials) {
+        set.status = 401;
+        return "Unauthorized";
+      }
+
+      return postgresDriver.getTableData(credentials, {
         tableName,
         dbName,
         perPage: Number.parseInt(perPage, 10),
@@ -45,37 +96,74 @@ const app = new Elysia({ prefix: "/api" })
   )
   .get(
     "databases/:dbName/tables/:tableName/columns",
-    async ({ params, query }) => {
+    async ({ params, jwt, set, cookie: { auth } }) => {
       const { tableName, dbName } = params;
+      const credentials = await jwt.verify(auth.value);
 
-      const columns = await getColumns(dbName, tableName);
+      if (!credentials) {
+        set.status = 401;
+        return "Unauthorized";
+      }
+
+      const columns = await postgresDriver.getTableColumns(credentials, {
+        dbName,
+        tableName,
+      });
       return new Response(JSON.stringify(columns, null, 2)).json();
     },
   )
   .get(
     "databases/:dbName/tables/:tableName/indexes",
-    async ({ params, query }) => {
+    async ({ params, jwt, set, cookie: { auth } }) => {
       const { tableName, dbName } = params;
+      const credentials = await jwt.verify(auth.value);
 
-      const indexes = await getIndexes(dbName, tableName);
+      if (!credentials) {
+        set.status = 401;
+        return "Unauthorized";
+      }
+
+      const indexes = await postgresDriver.getTableIndexes(credentials, {
+        dbName,
+        tableName,
+      });
       return new Response(JSON.stringify(indexes, null, 2)).json();
     },
   )
   .get(
     "databases/:dbName/tables/:tableName/foreign-keys",
-    async ({ params, query }) => {
+    async ({ params, jwt, set, cookie: { auth } }) => {
       const { tableName, dbName } = params;
+      const credentials = await jwt.verify(auth.value);
 
-      const foreignKeys = await getForeignKeys(dbName, tableName);
+      if (!credentials) {
+        set.status = 401;
+        return "Unauthorized";
+      }
+
+      const foreignKeys = await postgresDriver.getTableForeignKeys(
+        credentials,
+        {
+          dbName,
+          tableName,
+        },
+      );
+
       return new Response(JSON.stringify(foreignKeys, null, 2)).json();
     },
   )
   .post(
     "raw",
-    async ({ body }) => {
+    async ({ body, jwt, set, cookie: { auth } }) => {
+      const credentials = await jwt.verify(auth.value);
+
+      if (!credentials) {
+        set.status = 401;
+        return "Unauthorized";
+      }
+
       const { query } = body;
-      const result = await sql.unsafe(query);
-      return new Response(JSON.stringify(result, null, 2)).json();
+      return await postgresDriver.executeQuery(credentials, query);
     },
     {
       body: t.Object({
@@ -83,262 +171,14 @@ const app = new Elysia({ prefix: "/api" })
       }),
     },
   )
-  .use(cors())
+  .use(
+    cors({
+      origin: ["localhost:5173"],
+      allowedHeaders: ["Content-Type", "Authorization"],
+    }),
+  )
   .listen(3000);
 
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`,
 );
-
-async function getIndexes(dbName: string, tableName: string) {
-  const [tableOidResult] = await sql`
-      SELECT oid 
-      FROM pg_class
-      WHERE relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = ${dbName})
-      AND relname = ${tableName}
-    `;
-
-  const tableOid = tableOidResult.oid;
-
-  const columnsResult = await sql`
-      SELECT attnum, attname 
-      FROM pg_attribute 
-      WHERE attrelid = ${tableOid}
-      AND attnum > 0
-    `;
-
-  const columns = {};
-  columnsResult.forEach((row) => {
-    columns[row.attnum] = row.attname;
-  });
-
-  const indexResult = await sql`
-      SELECT 
-        relname, 
-        indisunique::int, 
-        indisprimary::int, 
-        indkey, 
-        (indpred IS NOT NULL)::int as indispartial 
-      FROM pg_index i
-      JOIN pg_class ci ON ci.oid = i.indexrelid 
-      WHERE i.indrelid = ${tableOid}
-    `;
-
-  return indexResult.map((row) => {
-    return {
-      relname: row.relname,
-      key: row.relname,
-      type: row.indispartial
-        ? "INDEX"
-        : row.indisprimary
-          ? "PRIMARY"
-          : row.indisunique
-            ? "UNIQUE"
-            : "INDEX",
-      columns: row.indkey.split(" ").map((indkey) => columns[indkey]),
-    };
-  });
-}
-
-async function getColumns(dbName: string, tableName: string) {
-  return await sql`
-      SELECT
-          cols.column_name,
-          cols.data_type,
-          cols.udt_name,
-          pgd.description AS column_comment
-      FROM
-          information_schema.columns AS cols
-              LEFT JOIN
-          pg_catalog.pg_statio_all_tables AS st ON st.relname = cols.table_name
-              LEFT JOIN
-          pg_catalog.pg_description AS pgd ON pgd.objoid = st.relid AND pgd.objsubid = cols.ordinal_position
-      WHERE
-          cols.table_name = ${tableName}
-      AND cols.table_schema = ${dbName}
-      
-      ORDER BY
-          cols.ordinal_position;
-    `;
-}
-
-async function getForeignKeys(dbName: string, tableName: string) {
-  const result = await sql`
-      SELECT 
-        conname, 
-        condeferrable::int AS deferrable, 
-        pg_get_constraintdef(oid) AS definition
-      FROM 
-        pg_constraint
-      WHERE 
-        conrelid = (
-          SELECT pc.oid 
-          FROM pg_class AS pc 
-          INNER JOIN pg_namespace AS pn ON (pn.oid = pc.relnamespace) 
-          WHERE pc.relname = ${tableName}
-          AND pn.nspname = ${dbName}
-        )
-        AND contype = 'f'::char
-      ORDER BY conkey, conname
-    `;
-
-  return result.map((row) => {
-    const match = row.definition.match(
-      /FOREIGN KEY\s*\((.+)\)\s*REFERENCES (.+)\((.+)\)(.*)$/iy,
-    );
-    if (match) {
-      const sourceColumns = match[1]
-        .split(",")
-        .map((col) => col.replaceAll('"', "").trim());
-      const targetTableMatch = match[2].match(
-        /^(("([^"]|"")+"|[^"]+)\.)?"?("([^"]|"")+"|[^"]+)$/,
-      );
-      const targetTable = targetTableMatch ? targetTableMatch[0].trim() : null;
-      const targetColumns = match[3]
-        .split(",")
-        .map((col) => col.replaceAll('"', "").trim());
-      const { onDelete, onUpdate } = getActions(match[4]);
-      return {
-        conname: row.conname,
-        deferrable: Boolean(row.deferrable),
-        definition: row.definition,
-        source: sourceColumns,
-        ns: targetTableMatch
-          ? targetTableMatch[0].replaceAll('"', "").trim()
-          : null,
-        table: targetTable.replaceAll('"', ""),
-        target: targetColumns,
-        on_delete: onDelete ?? "NO ACTION",
-        on_update: onUpdate ?? "NO ACTION",
-      };
-    }
-  });
-}
-
-function getActions(matchString: string) {
-  const onActions = "RESTRICT|NO ACTION|CASCADE|SET NULL|SET DEFAULT";
-  const onDeleteRegex = new RegExp(`ON DELETE (${onActions})`);
-  const onUpdateRegex = new RegExp(`ON UPDATE (${onActions})`);
-
-  const onDeleteMatch = matchString.match(onDeleteRegex);
-  const onUpdateMatch = matchString.match(onUpdateRegex);
-
-  const onDeleteAction = onDeleteMatch ? onDeleteMatch[1] : "NO ACTION";
-  const onUpdateAction = onUpdateMatch ? onUpdateMatch[1] : "NO ACTION";
-
-  return {
-    onDelete: onDeleteAction,
-    onUpdate: onUpdateAction,
-  };
-}
-
-async function getTables(
-  dbName: string,
-  sortField?: string,
-  sortDesc?: boolean,
-) {
-  const tables = await sql`
-    WITH primary_keys AS (SELECT pg_class.relname     AS table_name,
-                                 pg_namespace.nspname AS schema_name,
-                                 pg_attribute.attname AS primary_key
-                          FROM   pg_index
-                               JOIN
-                               pg_class ON pg_class.oid = pg_index.indrelid
-                               JOIN
-                               pg_attribute ON pg_attribute.attrelid = pg_class.oid AND
-                                               pg_attribute.attnum = ANY (pg_index.indkey)
-                               JOIN
-                               pg_namespace ON pg_namespace.oid = pg_class.relnamespace
-                          WHERE pg_index.indisprimary)
-    SELECT t.schemaname                                                                         AS schema_name,
-           t.tablename                                                                          AS table_name,
-           pg_total_relation_size(quote_ident(t.schemaname) || '.' || quote_ident(t.tablename)) AS total_size,
-           pg_relation_size(quote_ident(t.schemaname) || '.' || quote_ident(t.tablename))       AS table_size,
-           pg_total_relation_size(quote_ident(t.schemaname) || '.' || quote_ident(t.tablename)) -
-           pg_relation_size(quote_ident(t.schemaname) || '.' || quote_ident(t.tablename))       AS index_size,
-           COALESCE(
-                   (SELECT obj_description((quote_ident(t.schemaname) || '.' || quote_ident(t.tablename))::regclass)),
-                   ''
-           )                                                                                    AS comments,
-           (SELECT reltuples::bigint
-            FROM pg_class c
-                     JOIN pg_namespace n ON n.oid = c.relnamespace
-            WHERE c.relname = t.tablename
-              AND n.nspname = t.schemaname)                                                     AS row_count,
-           (SELECT string_agg(indexname, ', ')
-            FROM pg_indexes
-            WHERE tablename = t.tablename
-              AND schemaname = t.schemaname)                                                    AS indexes,
-           t.tableowner                                                                         AS owner,
-           COALESCE(
-                   (SELECT string_agg(pk.primary_key, ', ')
-                    FROM primary_keys pk
-                    WHERE pk.schema_name = t.schemaname
-                      AND pk.table_name = t.tablename),
-                   ''
-           )                                                                                    AS primary_key
-    FROM pg_tables t
-    WHERE t.schemaname = ${dbName}
-
-    ORDER BY ${
-      sortField
-        ? sql`${sql(sortField)}
-                             ${sortDesc ? sql`DESC` : sql`ASC`}`
-        : sql`t.schemaname, t.tablename`
-    }`;
-
-  return tables.map((table) => ({
-    ...table,
-    total_size: Number.parseInt(table.total_size, 10),
-    table_size: Number.parseInt(table.table_size, 10),
-    index_size: Number.parseInt(table.index_size, 10),
-    row_count: Number.parseInt(table.row_count, 10),
-  }));
-}
-
-async function getDatabases() {
-  const result = await sql`
-    SELECT nspname
-    FROM pg_catalog.pg_namespace;`;
-
-  return result.map(({ nspname }) => nspname);
-}
-
-async function getTableData({
-  tableName,
-  dbName,
-  perPage,
-  page,
-  sortDesc,
-  sortField,
-}: {
-  tableName: string;
-  dbName: string;
-  perPage: number;
-  page: number;
-  sortField?: string;
-  sortDesc?: boolean;
-}) {
-  const offset = (perPage * page).toString();
-  const rows = sql`
-    SELECT COUNT(*)
-    FROM ${sql(dbName)}.${sql(tableName)}`;
-
-  const tables = sql`
-    SELECT *
-    FROM ${sql(dbName)}.${sql(tableName)}
-    ${
-      sortField
-        ? sql`ORDER BY ${sql(sortField)} ${sortDesc ? sql`DESC` : sql`ASC`}`
-        : sql``
-    }
-    LIMIT ${perPage} OFFSET ${offset}
-    `;
-
-  const [[count], data] = await Promise.all([rows, tables]);
-
-  return {
-    count: count.count,
-    data,
-  };
-}

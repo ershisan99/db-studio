@@ -1,3 +1,21 @@
+export type LoginArgs =
+  | {
+      username: string;
+      password: string;
+      host: string;
+      type: string;
+      port: string;
+      ssl: string;
+      database: string;
+    }
+  | {
+      connectionString: string;
+    };
+
+export type LoginResponse = {
+  success: boolean;
+};
+
 export type DatabasesResponse = Array<string>;
 
 // Tables List

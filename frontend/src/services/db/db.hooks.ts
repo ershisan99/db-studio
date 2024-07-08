@@ -9,8 +9,13 @@ import type {
   GetTableForeignKeysArgs,
   GetTableIndexesArgs,
   GetTablesListArgs,
-  QueryRawSqlArgs,
 } from "./db.types";
+
+export const useLoginMutation = () => {
+  return useMutation({
+    mutationFn: dbService.login,
+  });
+};
 
 export const useDatabasesListQuery = () => {
   return useQuery({
@@ -90,7 +95,6 @@ export const useQueryRawSqlMutation = () => {
       }
       toast.error(error.message);
     },
-    mutationFn: ({ query }: QueryRawSqlArgs) =>
-      dbService.queryRawSql({ query }),
+    mutationFn: dbService.queryRawSql,
   });
 };

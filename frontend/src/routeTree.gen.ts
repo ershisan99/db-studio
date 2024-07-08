@@ -13,6 +13,7 @@
 import { Route as rootRoute } from './routes/__root'
 import { Route as IndexImport } from './routes/index'
 import { Route as RawIndexImport } from './routes/raw/index'
+import { Route as AuthLoginImport } from './routes/auth/login'
 import { Route as DbDbNameTablesIndexImport } from './routes/db/$dbName/tables/index'
 import { Route as DbDbNameTablesTableNameIndexImport } from './routes/db/$dbName/tables/$tableName/index'
 import { Route as DbDbNameTablesTableNameDataImport } from './routes/db/$dbName/tables/$tableName/data'
@@ -26,6 +27,11 @@ const IndexRoute = IndexImport.update({
 
 const RawIndexRoute = RawIndexImport.update({
   path: '/raw/',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const AuthLoginRoute = AuthLoginImport.update({
+  path: '/auth/login',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -55,6 +61,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexImport
+      parentRoute: typeof rootRoute
+    }
+    '/auth/login': {
+      id: '/auth/login'
+      path: '/auth/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginImport
       parentRoute: typeof rootRoute
     }
     '/raw/': {
@@ -92,6 +105,7 @@ declare module '@tanstack/react-router' {
 
 export const routeTree = rootRoute.addChildren({
   IndexRoute,
+  AuthLoginRoute,
   RawIndexRoute,
   DbDbNameTablesIndexRoute,
   DbDbNameTablesTableNameDataRoute,
@@ -107,6 +121,7 @@ export const routeTree = rootRoute.addChildren({
       "filePath": "__root.tsx",
       "children": [
         "/",
+        "/auth/login",
         "/raw/",
         "/db/$dbName/tables/",
         "/db/$dbName/tables/$tableName/data",
@@ -115,6 +130,9 @@ export const routeTree = rootRoute.addChildren({
     },
     "/": {
       "filePath": "index.tsx"
+    },
+    "/auth/login": {
+      "filePath": "auth/login.tsx"
     },
     "/raw/": {
       "filePath": "raw/index.tsx"
