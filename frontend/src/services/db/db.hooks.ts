@@ -1,4 +1,5 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { HTTPError } from "ky";
 import { toast } from "sonner";
 import { DB_QUERY_KEYS } from "./db.query-keys";
@@ -12,8 +13,15 @@ import type {
 } from "./db.types";
 
 export const useLoginMutation = () => {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
   return useMutation({
     mutationFn: dbService.login,
+    onSuccess: () => {
+      void navigate({ to: "/" });
+      void queryClient.invalidateQueries();
+    },
   });
 };
 
