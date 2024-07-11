@@ -1,0 +1,32 @@
+version: '3.3'
+
+services:
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8080:8080"
+  postgres:
+    container_name: db-postgres-test
+    image: postgres:latest
+    environment:
+      POSTGRES_PASSWORD: mysecretpassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  db:
+    container_name: db-mysql-test
+    image: mysql:latest
+    environment:
+      - MYSQL_PASSWORD=mysecretpassword
+      - MYSQL_ROOT_PASSWORD=mysecretpassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysqldata:/var/lib/mysql
+
+volumes:
+  pgdata:
+  mysqldata:

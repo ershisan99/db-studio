@@ -1,6 +1,8 @@
 import cors from "@elysiajs/cors";
 import { jwt } from "@elysiajs/jwt";
 import { Elysia, t } from "elysia";
+import type { Driver } from "./drivers/driver.interface";
+import { mySQLDriver } from "./drivers/mysql";
 import { postgresDriver } from "./drivers/postgres";
 
 const credentialsSchema = t.Union([
@@ -15,8 +17,21 @@ const credentialsSchema = t.Union([
   }),
   t.Object({
     connectionString: t.String(),
+    type: t.String(),
   }),
 ]);
+
+const getDriver = (type: string): Driver => {
+  switch (type) {
+    case "mysql":
+      return mySQLDriver;
+    case "postgres":
+      return postgresDriver;
+    default:
+      throw new Error("Invalid type");
+  }
+};
+
 const app = new Elysia({ prefix: "/api" })
   .use(
     jwt({
@@ -29,7 +44,9 @@ const app = new Elysia({ prefix: "/api" })
   .post(
     "/auth/login",
     async ({ body, jwt, cookie: { auth } }) => {
-      const databases = await postgresDriver.getAllDatabases(body);
+      const driver = getDriver(body.type);
+
+      const databases = await driver.getAllDatabases(body);
 
       auth.set({
         value: await jwt.sign(body),
@@ -42,13 +59,15 @@ const app = new Elysia({ prefix: "/api" })
   )
   .get("/databases", async ({ jwt, set, cookie: { auth } }) => {
     const credentials = await jwt.verify(auth.value);
-
+    console.log(auth.value);
     if (!credentials) {
       set.status = 401;
       return "Unauthorized";
     }
+    const driver = getDriver(credentials.type);
 
-    const databases = await postgresDriver.getAllDatabases(credentials);
+    const databases = await driver.getAllDatabases(credentials);
+
     return new Response(JSON.stringify(databases, null, 2)).json();
   })
   .get(
@@ -62,8 +81,8 @@ const app = new Elysia({ prefix: "/api" })
         set.status = 401;
         return "Unauthorized";
       }
-
-      const tables = await postgresDriver.getAllTables(credentials, {
+      const driver = getDriver(credentials.type);
+      const tables = await driver.getAllTables(credentials, {
         dbName,
         sortField,
         sortDesc: sortDesc === "true",
@@ -73,7 +92,7 @@ const app = new Elysia({ prefix: "/api" })
     },
   )
   .get(
-    "databases/:dbName/tables/:tableName/data",
+    "/databases/:dbName/tables/:tableName/data",
     async ({ query, params, jwt, set, cookie: { auth } }) => {
       const { tableName, dbName } = params;
       const { perPage = "50", page = "0", sortField, sortDesc } = query;
@@ -83,8 +102,9 @@ const app = new Elysia({ prefix: "/api" })
         set.status = 401;
         return "Unauthorized";
       }
+      const driver = getDriver(credentials.type);
 
-      return postgresDriver.getTableData(credentials, {
+      return driver.getTableData(credentials, {
         tableName,
         dbName,
         perPage: Number.parseInt(perPage, 10),
@@ -95,7 +115,7 @@ const app = new Elysia({ prefix: "/api" })
     },
   )
   .get(
-    "databases/:dbName/tables/:tableName/columns",
+    "/databases/:dbName/tables/:tableName/columns",
     async ({ params, jwt, set, cookie: { auth } }) => {
       const { tableName, dbName } = params;
       const credentials = await jwt.verify(auth.value);
@@ -105,7 +125,9 @@ const app = new Elysia({ prefix: "/api" })
         return "Unauthorized";
       }
 
-      const columns = await postgresDriver.getTableColumns(credentials, {
+      const driver = getDriver(credentials.type);
+
+      const columns = await driver.getTableColumns(credentials, {
         dbName,
         tableName,
       });
@@ -113,7 +135,7 @@ const app = new Elysia({ prefix: "/api" })
     },
   )
   .get(
-    "databases/:dbName/tables/:tableName/indexes",
+    "/databases/:dbName/tables/:tableName/indexes",
     async ({ params, jwt, set, cookie: { auth } }) => {
       const { tableName, dbName } = params;
       const credentials = await jwt.verify(auth.value);
@@ -123,7 +145,9 @@ const app = new Elysia({ prefix: "/api" })
         return "Unauthorized";
       }
 
-      const indexes = await postgresDriver.getTableIndexes(credentials, {
+      const driver = getDriver(credentials.type);
+
+      const indexes = await driver.getTableIndexes(credentials, {
         dbName,
         tableName,
       });
@@ -131,7 +155,7 @@ const app = new Elysia({ prefix: "/api" })
     },
   )
   .get(
-    "databases/:dbName/tables/:tableName/foreign-keys",
+    "/databases/:dbName/tables/:tableName/foreign-keys",
     async ({ params, jwt, set, cookie: { auth } }) => {
       const { tableName, dbName } = params;
       const credentials = await jwt.verify(auth.value);
@@ -141,19 +165,18 @@ const app = new Elysia({ prefix: "/api" })
         return "Unauthorized";
       }
 
-      const foreignKeys = await postgresDriver.getTableForeignKeys(
-        credentials,
-        {
-          dbName,
-          tableName,
-        },
-      );
+      const driver = getDriver(credentials.type);
+
+      const foreignKeys = await driver.getTableForeignKeys(credentials, {
+        dbName,
+        tableName,
+      });
 
       return new Response(JSON.stringify(foreignKeys, null, 2)).json();
     },
   )
   .post(
-    "raw",
+    "/raw",
     async ({ body, jwt, set, cookie: { auth } }) => {
       const credentials = await jwt.verify(auth.value);
 
@@ -161,9 +184,10 @@ const app = new Elysia({ prefix: "/api" })
         set.status = 401;
         return "Unauthorized";
       }
+      const driver = getDriver(credentials.type);
 
       const { query } = body;
-      return await postgresDriver.executeQuery(credentials, query);
+      return await driver.executeQuery(credentials, query);
     },
     {
       body: t.Object({
@@ -182,3 +206,5 @@ const app = new Elysia({ prefix: "/api" })
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`,
 );
+
+export type AppType = typeof app;

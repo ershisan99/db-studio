@@ -16,6 +16,7 @@ type SessionFields = {
 type SessionConnectionString = {
   id: number;
   connectionString: string;
+  type: string;
 };
 type Session = SessionFields | SessionConnectionString;
 

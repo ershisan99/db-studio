@@ -26,6 +26,23 @@ export const Route = createFileRoute("/auth/login")({
   component: LoginForm,
 });
 
+function DatabaseTypeSelector() {
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor="dbType">Database type</Label>
+      <Select defaultValue={"postgres"} name={"type"}>
+        <SelectTrigger className="w-full" id={"dbType"}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="postgres">Postgres</SelectItem>
+          <SelectItem value="mysql">MySQL</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
 function LoginForm() {
   const [connectionMethod, setConnectionMethod] =
     useState<string>("connectionString");
@@ -36,12 +53,17 @@ function LoginForm() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const connectionString = formData.get("connectionString");
-
+    const type = formData.get("type");
     if (connectionMethod === "connectionString") {
-      if (connectionString != null && typeof connectionString === "string") {
+      if (
+        connectionString != null &&
+        typeof connectionString === "string" &&
+        type != null &&
+        typeof type === "string"
+      ) {
         try {
-          await mutateAsync({ connectionString });
-          addSession({ connectionString });
+          await mutateAsync({ connectionString, type });
+          addSession({ connectionString, type });
         } catch (error) {
           console.log(error);
           toast.error("Invalid connection string");
@@ -56,7 +78,6 @@ function LoginForm() {
     const username = formData.get("username");
     const password = formData.get("password");
     const host = formData.get("host");
-    const type = formData.get("type");
     const port = formData.get("port");
     const database = formData.get("database");
     const ssl = formData.get("ssl");
@@ -138,17 +159,7 @@ function LoginForm() {
             </ToggleGroup>
             {connectionMethod === "fields" ? (
               <>
-                <div className="grid gap-2">
-                  <Label htmlFor="dbType">Database type</Label>
-                  <Select defaultValue={"postgres"} name={"type"}>
-                    <SelectTrigger className="w-full" id={"dbType"}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="postgres">Postgres</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <DatabaseTypeSelector />
                 <div className="grid gap-2">
                   <Label htmlFor="host">Host</Label>
                   <Input
@@ -212,6 +223,7 @@ function LoginForm() {
               </>
             ) : (
               <div className="grid gap-2">
+                <DatabaseTypeSelector />
                 <Label htmlFor="connectionString">Connection string</Label>
                 <Input
                   name="connectionString"

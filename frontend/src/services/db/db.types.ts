@@ -10,6 +10,7 @@ export type LoginArgs =
     }
   | {
       connectionString: string;
+      type: string;
     };
 
 export type LoginResponse = {

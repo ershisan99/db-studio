@@ -180,7 +180,7 @@ export class PostgresDriver implements Driver {
     void sql.end();
 
     return {
-      count: count.count,
+      count: Number.parseInt(count.count, 10),
       data,
     };
   }
