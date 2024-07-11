@@ -100,7 +100,10 @@ export const DataTable = ({
       cell: ({ row }) => {
         const value = row.getValue(column_name) as any;
         let finalValue = value;
-        if (formatDates && udt_name === "timestamp") {
+        if (
+          formatDates &&
+          ["timestamp", "datetime"].includes(udt_name.toLowerCase())
+        ) {
           finalValue = new Date(value as string).toLocaleString();
         }
         if (showImagesPreview && typeof value === "string" && isUrl(value)) {
@@ -129,7 +132,11 @@ export const DataTable = ({
         }
         return (
           <div
-            className={cn("break-all", data_type === "integer" && "text-right")}
+            className={cn(
+              "break-all",
+              ["integer", "int", "tinyint", "double"].includes(data_type) &&
+                "text-right",
+            )}
           >
             {finalValue}
           </div>
