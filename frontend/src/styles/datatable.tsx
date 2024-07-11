@@ -24,7 +24,7 @@ export const datatable: DataTablePassThroughOptions = {
     className: cn(
       "fixed w-full h-full t-0 l-0 bg-gray-100/40",
       "transition duration-200",
-      "absolute flex items-center justify-center z-2",
+      "absolute flex items-center justify-center z-10",
       "dark:bg-gray-950/40", // Dark Mode
     ),
   },

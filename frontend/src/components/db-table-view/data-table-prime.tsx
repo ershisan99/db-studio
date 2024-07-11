@@ -1,36 +1,71 @@
-import {
-  Button,
-  DataTablePagination,
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-  ScrollArea,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui";
 import { cn, isImageUrl, isUrl } from "@/lib/utils";
 import { useTableColumnsQuery, useTableDataQuery } from "@/services/db";
 import { useSettingsStore } from "@/state";
-import {
-  type ColumnDef,
-  type OnChangeFn,
-  type PaginationState,
-  type SortingState,
-  type VisibilityState,
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
-import { ArrowUp, Rows3 } from "lucide-react";
+import type { SortingState, VisibilityState } from "@tanstack/react-table";
+import { Rows3 } from "lucide-react";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
-import { usePassThrough } from "primereact/passthrough";
-import { useMemo, useState } from "react";
+import { useState } from "react";
+
+const columnTemplate =
+  ({
+    columnName,
+    formatDates,
+    showImagesPreview,
+    udt_name,
+    data_type,
+  }: {
+    columnName: string;
+    formatDates: boolean;
+    showImagesPreview: boolean;
+    udt_name: string;
+    data_type: string;
+  }) =>
+  (item: Record<string, any>) => {
+    const value = item[columnName] as any;
+
+    let finalValue = value;
+    if (
+      formatDates &&
+      ["timestamp", "datetime"].includes(udt_name.toLowerCase())
+    ) {
+      finalValue = new Date(value as string).toLocaleString();
+    }
+    if (showImagesPreview && typeof value === "string" && isUrl(value)) {
+      const isImage = isImageUrl(value);
+      return (
+        <a
+          href={value}
+          target={"_blank"}
+          className={cn("hover:underline")}
+          rel="noreferrer"
+        >
+          <div className={"flex items-center justify-between break-all gap-4"}>
+            {value}
+            {isImage && (
+              <img
+                src={value}
+                alt={"preview"}
+                className="size-20 object-cover"
+              />
+            )}
+          </div>
+        </a>
+      );
+    }
+    return (
+      <div
+        className={cn(
+          "break-all",
+          ["integer", "int", "tinyint", "double"].includes(data_type) &&
+            "text-right",
+        )}
+      >
+        {finalValue}
+      </div>
+    );
+  };
+
 export const DataTablePrime = ({
   tableName,
   dbName,
@@ -53,7 +88,7 @@ export const DataTablePrime = ({
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
   const { data: columns } = useTableColumnsQuery({ dbName, tableName });
-  const { data } = useTableDataQuery({
+  const { data, isFetching } = useTableDataQuery({
     tableName,
     dbName,
     perPage: pageSize,
@@ -96,12 +131,20 @@ export const DataTablePrime = ({
           tableStyle={{ minWidth: "100%" }}
           scrollable
           scrollHeight="flex"
+          loading={isFetching}
         >
           {columns?.map((col) => (
             <Column
               key={col.column_name}
               field={col.column_name}
               header={col.column_name}
+              body={columnTemplate({
+                columnName: col.column_name,
+                formatDates,
+                showImagesPreview,
+                udt_name: col.udt_name,
+                data_type: col.data_type,
+              })}
             />
           ))}
         </DataTable>
