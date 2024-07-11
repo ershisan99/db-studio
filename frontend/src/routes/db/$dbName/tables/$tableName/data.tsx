@@ -1,4 +1,5 @@
 import { DataTable } from "@/components/db-table-view/data-table";
+import { DataTablePrime } from "@/components/db-table-view/data-table-prime";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 
@@ -18,22 +19,25 @@ function TableView() {
   const navigate = useNavigate({ from: Route.fullPath });
 
   const updatePageSize = (value: number) => {
+    console.log(value);
     return void navigate({
       search: (prev) => ({ ...prev, pageSize: value, pageIndex: 0 }),
     });
   };
   const updatePageIndex = (pageIndex: number) => {
+    console.log(pageIndex);
+
     return void navigate({ search: (prev) => ({ ...prev, pageIndex }) });
   };
 
   return (
     <div className="p-3 h-layout w-layout">
-      <DataTable
+      <DataTablePrime
         key={tableName}
         dbName={dbName}
         tableName={tableName}
         pageSize={pageSize}
-        pageIndex={pageIndex}
+        offset={pageIndex}
         onPageIndexChange={updatePageIndex}
         onPageSizeChange={updatePageSize}
       />

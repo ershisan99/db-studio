@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
+
 @layer base {
   input[type=number] {
     -moz-appearance:textfield;
