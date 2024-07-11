@@ -8,6 +8,7 @@ export * from "./label";
 export * from "./mode-toggle";
 export * from "./select";
 export * from "./sonner";
+export * from "./scroll-area";
 export * from "./sql-data-table";
 export * from "./sql-data-table-cell";
 export * from "./switch";

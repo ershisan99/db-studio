@@ -5,6 +5,7 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
+  ScrollArea,
   Table,
   TableBody,
   TableCell,
@@ -159,7 +160,7 @@ export const DataTable = ({
   });
 
   return (
-    <div className={"flex flex-col gap-4 flex-1 max-h-full pb-3"}>
+    <div className={"flex flex-col gap-4 flex-1 max-h-full h-full pb-3"}>
       <div className={"flex gap-4 items-center justify-between"}>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Rows3 /> {tableName}
@@ -193,7 +194,7 @@ export const DataTable = ({
         </p>
       </div>
 
-      <div className="rounded-md border min-h-0 h-full overflow-auto w-full min-w-0">
+      <ScrollArea className="rounded-md border min-h-0 h-full w-full min-w-0">
         <Table
           className={"table-fixed min-w-full"}
           {...{
@@ -289,7 +290,7 @@ export const DataTable = ({
             )}
           </TableBody>
         </Table>
-      </div>
+      </ScrollArea>
       <DataTablePagination table={table} />
     </div>
   );
