@@ -1,4 +1,4 @@
-import mysql, { type ResultSetHeader } from "mysql2/promise";
+import mysql from "mysql2/promise";
 import type {
   Credentials,
   Driver,
@@ -6,35 +6,17 @@ import type {
   WithSortPagination,
 } from "./driver.interface";
 
-const isResultSetHeader = (data: unknown): data is ResultSetHeader => {
-  if (!data || typeof data !== "object") return false;
-
-  const keys = [
-    "fieldCount",
-    "affectedRows",
-    "insertId",
-    "info",
-    "serverStatus",
-    "warningStatus",
-    "changedRows",
-  ];
-
-  return keys.every((key) => key in data);
-};
-
 export class MySQLDriver implements Driver {
   parseCredentials({
     username,
     password,
     host,
-    type,
     port,
     database,
   }: {
     username: string;
     password: string;
     host: string;
-    type: string;
     port: string;
     database: string;
     ssl: string;
@@ -43,7 +25,6 @@ export class MySQLDriver implements Driver {
       user: username,
       password,
       host,
-      type,
       port: Number.parseInt(port, 10),
       database,
       ssl: {
@@ -58,9 +39,9 @@ export class MySQLDriver implements Driver {
       if ("connectionString" in credentials) {
         connection = await mysql.createConnection(credentials.connectionString);
       } else {
-        connection = await mysql.createConnection(
-          this.parseCredentials(credentials),
-        );
+        const creds = this.parseCredentials(credentials);
+        console.log(creds);
+        connection = await mysql.createConnection(creds);
       }
     } catch (error) {
       console.error(error);
@@ -68,22 +49,6 @@ export class MySQLDriver implements Driver {
     }
 
     return connection;
-  }
-  private getActions(matchString: string) {
-    const onActions = "RESTRICT|NO ACTION|CASCADE|SET NULL|SET DEFAULT";
-    const onDeleteRegex = new RegExp(`ON DELETE (${onActions})`);
-    const onUpdateRegex = new RegExp(`ON UPDATE (${onActions})`);
-
-    const onDeleteMatch = matchString.match(onDeleteRegex);
-    const onUpdateMatch = matchString.match(onUpdateRegex);
-
-    const onDeleteAction = onDeleteMatch ? onDeleteMatch[1] : "NO ACTION";
-    const onUpdateAction = onUpdateMatch ? onUpdateMatch[1] : "NO ACTION";
-
-    return {
-      onDelete: onDeleteAction,
-      onUpdate: onUpdateAction,
-    };
   }
 
   async getAllDatabases(credentials: Credentials) {
@@ -102,11 +67,15 @@ export class MySQLDriver implements Driver {
 
   async getAllTables(
     credentials: Credentials,
-    { sortDesc, sortField, dbName }: WithSort<{ dbName: string }>,
+    {
+      sortDesc,
+      sortField = "schema_name",
+      dbName,
+    }: WithSort<{ dbName: string }>,
   ) {
     const connection = await this.queryRunner(credentials);
 
-    const tablesQuery = `
+    let tablesQuery = `
       SELECT
         TABLE_NAME as table_name,
         TABLE_SCHEMA as schema_name,
@@ -118,8 +87,11 @@ export class MySQLDriver implements Driver {
       FROM
         information_schema.tables
       WHERE
-        table_schema = ?;
+        table_schema = ?
     `;
+    if (sortField) {
+      tablesQuery += ` ORDER BY ${sortField} ${sortDesc ? "DESC" : "ASC"}`;
+    }
 
     const [tables] = await connection.execute(tablesQuery, [dbName]);
 
@@ -301,74 +273,71 @@ export class MySQLDriver implements Driver {
     credentials: Credentials,
     { dbName, tableName }: { dbName: string; tableName: string },
   ) {
-    const sql = await this.queryRunner(credentials);
+    const connection = await this.queryRunner(credentials);
 
-    const result = await sql`
-      SELECT 
-        conname, 
-        condeferrable::int AS deferrable, 
-        pg_get_constraintdef(oid) AS definition
-      FROM 
-        pg_constraint
-      WHERE 
-        conrelid = (
-          SELECT pc.oid 
-          FROM pg_class AS pc 
-          INNER JOIN pg_namespace AS pn ON (pn.oid = pc.relnamespace) 
-          WHERE pc.relname = ${tableName}
-          AND pn.nspname = ${dbName}
-        )
-        AND contype = 'f'::char
-      ORDER BY conkey, conname
-    `;
-
-    void sql.end();
-
-    return result.map((row) => {
-      const match = row.definition.match(
-        /FOREIGN KEY\s*\((.+)\)\s*REFERENCES (.+)\((.+)\)(.*)$/iy,
+    try {
+      const [rows] = await connection.execute(
+        `
+      SELECT
+        rc.CONSTRAINT_NAME as conname,
+        rc.UPDATE_RULE as on_update,
+        rc.DELETE_RULE as on_delete,
+        kcu.COLUMN_NAME as source,
+        kcu.REFERENCED_TABLE_NAME as \`table\`,
+        kcu.REFERENCED_COLUMN_NAME as target
+      FROM
+        information_schema.REFERENTIAL_CONSTRAINTS rc
+      JOIN
+        information_schema.KEY_COLUMN_USAGE kcu
+      ON
+        rc.CONSTRAINT_SCHEMA = kcu.CONSTRAINT_SCHEMA
+        AND rc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME
+      WHERE
+        kcu.TABLE_SCHEMA = ?
+        AND kcu.TABLE_NAME = ?
+    `,
+        [dbName, tableName],
       );
-      if (match) {
-        const sourceColumns = match[1]
-          .split(",")
-          .map((col) => col.replaceAll('"', "").trim());
-        const targetTableMatch = match[2].match(
-          /^(("([^"]|"")+"|[^"]+)\.)?"?("([^"]|"")+"|[^"]+)$/,
-        );
-        const targetTable = targetTableMatch
-          ? targetTableMatch[0].trim()
-          : null;
-        const targetColumns = match[3]
-          .split(",")
-          .map((col) => col.replaceAll('"', "").trim());
-        const { onDelete, onUpdate } = this.getActions(match[4]);
-        return {
-          conname: row.conname,
-          deferrable: Boolean(row.deferrable),
-          definition: row.definition,
-          source: sourceColumns,
-          ns: targetTableMatch
-            ? targetTableMatch[0].replaceAll('"', "").trim()
-            : null,
-          table: targetTable.replaceAll('"', ""),
-          target: targetColumns,
-          on_delete: onDelete ?? "NO ACTION",
-          on_update: onUpdate ?? "NO ACTION",
-        };
-      }
-    });
+
+      await connection.end();
+
+      const foreignKeys: { [key: string]: ForeignKeyInfo } = {};
+      (rows as any[]).forEach((row) => {
+        if (!foreignKeys[row.conname]) {
+          foreignKeys[row.conname] = {
+            conname: row.conname,
+            deferrable: false,
+            definition: `FOREIGN KEY (${row.source}) REFERENCES ${row.table}(${row.target})`,
+            source: [],
+            ns: row.table,
+            table: row.table,
+            target: [],
+            on_delete: row.on_delete,
+            on_update: row.on_update,
+          };
+        }
+        foreignKeys[row.conname].source.push(row.source);
+        foreignKeys[row.conname].target.push(row.target);
+      });
+
+      return Object.values(foreignKeys);
+    } catch (error) {
+      console.error("Error fetching foreign keys:", error);
+      await connection.end();
+      throw error;
+    }
   }
 
   async executeQuery(credentials: Credentials, query: string) {
-    const sql = await this.queryRunner(credentials);
+    const connection = await this.queryRunner(credentials);
 
-    const result = await sql.unsafe(query);
+    const [rows, fields] = await connection.execute(query);
 
-    void sql.end();
+    await connection.end();
 
     return {
-      count: result.length,
-      data: result,
+      count: rows?.length,
+      data: rows,
     };
   }
 }

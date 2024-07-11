@@ -6,22 +6,19 @@ import type { AppType } from "../index";
 
 const fetch = edenFetch<AppType>("http://localhost:3000");
 
+const testDBName = "users";
+
 const pgCookie = cookie.serialize(
   "auth",
   jwt.sign(
-    // {
-    //   type: "postgres",
-    //   username: "postgres",
-    //   password: "mysecretpassword",
-    //   host: "localhost",
-    //   port: "5432",
-    //   database: "postgres",
-    //   ssl: "prefer",
-    // },
     {
       type: "postgres",
-      connectionString:
-        "postgresql://flashcards_owner:pBYW18waUHtV@ep-gentle-heart-a225yqws.eu-central-1.aws.neon.tech/flashcards?sslmode=require&schema=flashcards",
+      username: "postgres",
+      password: "mysecretpassword",
+      host: "localhost",
+      port: "5432",
+      database: "postgres",
+      ssl: "prefer",
     },
     "Fischl von Luftschloss Narfidort",
     { noTimestamp: true },
@@ -213,7 +210,7 @@ describe("databases/:dbName/tables/:tableName/data", () => {
     const res = await fetch("/api/databases/:dbName/tables/:tableName/data", {
       params: {
         dbName: "public",
-        tableName: "test_table",
+        tableName: testDBName,
       },
       method: "GET",
       headers: {
@@ -240,7 +237,7 @@ describe("databases/:dbName/tables/:tableName/data", () => {
     const res = await fetch("/api/databases/:dbName/tables/:tableName/data", {
       params: {
         dbName: "test_db",
-        tableName: "test_table",
+        tableName: testDBName,
       },
       method: "GET",
       headers: {
@@ -271,7 +268,7 @@ describe("databases/:dbName/tables/:tableName/indexes", () => {
       {
         params: {
           dbName: "public",
-          tableName: "test_table",
+          tableName: testDBName,
         },
         method: "GET",
         headers: {
@@ -302,7 +299,7 @@ describe("databases/:dbName/tables/:tableName/indexes", () => {
       {
         params: {
           dbName: "test_db",
-          tableName: "test_table",
+          tableName: testDBName,
         },
         method: "GET",
         headers: {
@@ -335,7 +332,7 @@ describe("databases/:dbName/tables/:tableName/columns", () => {
       {
         params: {
           dbName: "public",
-          tableName: "test_table",
+          tableName: testDBName,
         },
         method: "GET",
         headers: {
@@ -375,7 +372,7 @@ describe("databases/:dbName/tables/:tableName/columns", () => {
       {
         params: {
           dbName: "test_db",
-          tableName: "test_table",
+          tableName: testDBName,
         },
         method: "GET",
         headers: {
@@ -407,81 +404,149 @@ describe("databases/:dbName/tables/:tableName/columns", () => {
 });
 
 describe("databases/:dbName/tables/:tableName/foreign-keys", () => {
-  // it("should return correct data from PostgreSQL", async () => {
-  //   const res = await fetch(
-  //     "/api/databases/:dbName/tables/:tableName/foreign-keys",
-  //     {
-  //       params: {
-  //         dbName: "public",
-  //         tableName: "test_table",
-  //       },
-  //       method: "GET",
-  //       headers: {
-  //         cookie: pgCookie,
-  //       },
-  //     },
-  //   );
-  //   expect(res.status).toEqual(200);
-  //
-  //   expect(res.data).not.toEqual("Unauthorized");
-  //   if (res.data === "Unauthorized") return;
-  //
-  //   console.log(res.data);
-  //
-  //   expect(res.data).toBeDefined();
-  //   if (!res.data) return;
-  //
-  //   expect(res.data).toBeArray();
-  //
-  //   for (const row of res.data) {
-  //     expect(row).toContainAllKeys([
-  //       "column_name",
-  //       "data_type",
-  //       "udt_name",
-  //       "column_comment",
-  //     ]);
-  //     expect(row.column_name).toBeString();
-  //     expect(row.data_type).toBeString();
-  //     expect(row.udt_name).toBeString();
-  //     expect(
-  //       row.column_comment === null || typeof row.column_comment === "string",
-  //     ).toBeTrue();
-  //   }
-  // });
-  // it("should return correct data from MySQL", async () => {
-  //   const res = await fetch(
-  //       "/api/databases/:dbName/tables/:tableName/columns",
-  //       {
-  //         params: {
-  //           dbName: "test_db",
-  //           tableName: "test_table",
-  //         },
-  //         method: "GET",
-  //         headers: {
-  //           cookie: mysqlCookie,
-  //         },
-  //       },
-  //   );
-  //   console.log(res.data);
-  //
-  //   expect(res.data).toBeDefined();
-  //   if (!res.data) return;
-  //
-  //   expect(res.data).toBeArray();
-  //
-  //   for (const row of res.data) {
-  //     expect(row).toContainAllKeys([
-  //       "column_name",
-  //       "data_type",
-  //       "udt_name",
-  //       "column_comment",
-  //     ]);
-  //     expect(row.column_name).toBeString();
-  //     expect(row.data_type).toBeString();
-  //     expect(row.udt_name).toBeString();
-  //     expect(
-  //         row.column_comment === null || typeof row.column_comment === "string",
-  //     ).toBeTrue();
-  //   }
-  // });
+  it("should return correct data from PostgreSQL", async () => {
+    const res = await fetch(
+      "/api/databases/:dbName/tables/:tableName/foreign-keys",
+      {
+        params: {
+          dbName: "public",
+          tableName: "orders",
+        },
+        method: "GET",
+        headers: {
+          cookie: pgCookie,
+        },
+      },
+    );
+    expect(res.status).toEqual(200);
+
+    expect(res.data).not.toEqual("Unauthorized");
+    if (res.data === "Unauthorized") return;
+
+    expect(res.data).toBeDefined();
+    if (!res.data) return;
+
+    expect(res.data).toBeArray();
+
+    for (const row of res.data) {
+      expect(row).toContainAllKeys([
+        "conname",
+        "deferrable",
+        "definition",
+        "source",
+        "ns",
+        "on_delete",
+        "on_update",
+        "table",
+        "target",
+      ]);
+      expect(row.conname).toBeString();
+      expect(row.deferrable).toBeBoolean();
+      expect(row.definition).toBeString();
+      expect(row.source).toBeArray();
+      expect(row.ns).toBeString();
+      expect(row.on_delete).toBeString();
+      expect(row.on_update).toBeString();
+      expect(row.table).toBeString();
+      expect(row.target).toBeArray();
+    }
+  });
+  it("should return correct data from MySQL", async () => {
+    const res = await fetch(
+      "/api/databases/:dbName/tables/:tableName/foreign-keys",
+      {
+        params: {
+          dbName: "test_db",
+          tableName: "orders",
+        },
+        method: "GET",
+        headers: {
+          cookie: mysqlCookie,
+        },
+      },
+    );
+
+    expect(res.data).toBeDefined();
+    if (!res.data) return;
+
+    expect(res.data).toBeArray();
+
+    for (const row of res.data) {
+      expect(row).toContainAllKeys([
+        "conname",
+        "deferrable",
+        "definition",
+        "source",
+        "ns",
+        "on_delete",
+        "on_update",
+        "table",
+        "target",
+      ]);
+      expect(row.conname).toBeString();
+      expect(row.deferrable).toBeBoolean();
+      expect(row.definition).toBeString();
+      expect(row.source).toBeArray();
+      expect(row.ns).toBeString();
+      expect(row.on_delete).toBeString();
+      expect(row.on_update).toBeString();
+      expect(row.table).toBeString();
+      expect(row.target).toBeArray();
+    }
+  });
+});
+
+describe("raw", () => {
+  it("should return correct data from PostgreSQL", async () => {
+    const query = "SELECT * FROM information_schema.tables;";
+    const res = await fetch("/api/raw", {
+      method: "POST",
+      headers: {
+        cookie: pgCookie,
+      },
+      body: {
+        query,
+      },
+    });
+    expect(res.status).toEqual(200);
+
+    expect(res.data).not.toEqual("Unauthorized");
+    if (res.data === "Unauthorized") return;
+
+    expect(res.data).toBeDefined();
+    if (!res.data) return;
+
+    expect(res.data.count).toBeNumber();
+    expect(res.data.count).toBeGreaterThan(0);
+
+    expect(res.data.data).toBeArray();
+    expect(res.data.data.length).toBeGreaterThan(0);
+    expect(res.data.data[0]).toBeObject();
+  });
+  it("should return correct data from MySQL", async () => {
+    const query = "SELECT * FROM information_schema.tables;";
+    const res = await fetch("/api/raw", {
+      method: "POST",
+      headers: {
+        cookie: mysqlCookie,
+      },
+      body: {
+        query,
+      },
+    });
+    expect(res.status).toEqual(200);
+
+    expect(res.data).not.toEqual("Unauthorized");
+    if (res.data === "Unauthorized") return;
+
+    expect(res.data).toBeDefined();
+    if (!res.data) return;
+
+    expect(res.data.count).toBeNumber();
+    expect(res.data.count).toBeGreaterThan(0);
+
+    expect(res.data.data).toBeArray();
+    expect(res.data.data.length).toBeGreaterThan(0);
+    expect(res.data.data[0]).toBeObject();
+  });
 });

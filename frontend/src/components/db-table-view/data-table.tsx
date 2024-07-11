@@ -95,7 +95,7 @@ export const DataTable = ({
           </div>
         );
       },
-      sortable: true,
+      enableSorting: true,
       cell: ({ row }) => {
         const value = row.getValue(column_name) as any;
         let finalValue = value;

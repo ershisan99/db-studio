@@ -80,10 +80,12 @@ const createColumns = (dbName: string) => {
 
     columnHelper.accessor("primary_key", {
       header: "Primary key",
+      enableSorting: false,
     }),
 
     columnHelper.accessor("indexes", {
       header: "Indexes",
+      enableSorting: false,
       cell: (props) => {
         const indexes = props.getValue();
         if (!indexes) return null;

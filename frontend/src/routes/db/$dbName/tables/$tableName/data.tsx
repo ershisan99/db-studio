@@ -29,6 +29,7 @@ function TableView() {
   return (
     <div className="p-3 h-layout w-layout">
       <DataTable
+        key={tableName}
         dbName={dbName}
         tableName={tableName}
         pageSize={pageSize}
