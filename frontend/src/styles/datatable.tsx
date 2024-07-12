@@ -38,7 +38,7 @@ export const datatable: DataTablePassThroughOptions = {
   }),
   header: ({ props }) => ({
     className: cn(
-      "bg-slate-50 text-slate-700 border-gray-300 font-bold p-4",
+      "font-bold p-4",
       "dark:border-blue-900/40 dark:text-white/80 dark:bg-gray-900", // Dark Mode
       props.showGridlines
         ? "border-x border-t border-b-0"
@@ -48,7 +48,7 @@ export const datatable: DataTablePassThroughOptions = {
   table: "w-full border-spacing-0 text-sm",
   thead: ({ context }) => ({
     className: cn({
-      "bg-slate-50 top-0 z-[1]": context.scrollable,
+      "top-0 z-[1]": context.scrollable,
     }),
   }),
   tbody: ({ props, context }) => ({
@@ -70,7 +70,7 @@ export const datatable: DataTablePassThroughOptions = {
   column: {
     headercell: ({ context, props }) => ({
       className: cn(
-        "text-left border-0 border-b border-solid border-gray-300 dark:border-blue-900/40 font-bold",
+        "text-left border-0 border-b border-solid font-bold",
         "transition duration-200",
         context?.size === "small"
           ? "p-2"
@@ -79,7 +79,7 @@ export const datatable: DataTablePassThroughOptions = {
             : "p-4", // Size
         context.sorted
           ? "bg-blue-50 text-blue-700"
-          : "bg-slate-50 text-slate-700", // Sort
+          : "bg-muted/50 text-slate-700", // Sort
         context.sorted
           ? "dark:text-white/80 dark:bg-blue-300"
           : "dark:text-white/80 dark:bg-gray-900", // Dark Mode

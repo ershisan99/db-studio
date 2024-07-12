@@ -1,11 +1,24 @@
 import { cn, isImageUrl, isUrl } from "@/lib/utils";
 import { useTableColumnsQuery, useTableDataQuery } from "@/services/db";
 import { useSettingsStore } from "@/state";
-import type { SortingState, VisibilityState } from "@tanstack/react-table";
 import { Rows3 } from "lucide-react";
 import { Column } from "primereact/column";
-import { DataTable } from "primereact/datatable";
-import { useState } from "react";
+import { DataTable, type SortOrder } from "primereact/datatable";
+import {
+  MultiSelect,
+  type MultiSelectChangeEvent,
+} from "primereact/multiselect";
+import { useEffect, useState } from "react";
+
+const headerTemplate = ({
+  columnName,
+  udt_name,
+}: { udt_name: string; columnName: string }) => (
+  <div className={"flex items-center gap-2"}>
+    <span>{columnName}</span>
+    <span className="text-xs text-gray-500">[{udt_name.toUpperCase()}]</span>
+  </div>
+);
 
 const columnTemplate =
   ({
@@ -84,17 +97,49 @@ export const DataTablePrime = ({
   const formatDates = useSettingsStore.use.formatDates();
   const showImagesPreview = useSettingsStore.use.showImagesPreview();
   const paginationOptions = useSettingsStore.use.paginationOptions();
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-
+  const [sorting, setSorting] = useState<
+    | {
+        sortField?: string;
+        sortOrder?: SortOrder;
+      }
+    | undefined
+  >(undefined);
   const { data: columns } = useTableColumnsQuery({ dbName, tableName });
+  const [visibleColumns, setVisibleColumns] = useState(columns);
+
+  useEffect(() => {
+    setVisibleColumns(columns);
+  }, [columns]);
+
+  const onColumnToggle = (event: MultiSelectChangeEvent) => {
+    const selectedColumns = event.value;
+    console.log(selectedColumns);
+    const orderedSelectedColumns = columns?.filter((col) =>
+      selectedColumns.some((sCol: any) => sCol.column_name === col.column_name),
+    );
+
+    setVisibleColumns(orderedSelectedColumns);
+  };
+
+  const header = (
+    <MultiSelect
+      value={visibleColumns}
+      options={columns}
+      optionLabel="column_name"
+      onChange={onColumnToggle}
+      className="w-full sm:w-20rem"
+      display="chip"
+      filter
+    />
+  );
+
   const { data, isFetching } = useTableDataQuery({
     tableName,
     dbName,
     perPage: pageSize,
     page: Math.floor(offset / pageSize),
-    sortDesc: sorting[0]?.desc,
-    sortField: sorting[0]?.id,
+    sortDesc: sorting?.sortOrder === -1,
+    sortField: sorting?.sortField,
   });
 
   return (
@@ -109,6 +154,7 @@ export const DataTablePrime = ({
       </div>
       <div className="min-h-0 h-full w-full min-w-0">
         <DataTable
+          header={header}
           rows={pageSize}
           lazy
           first={offset}
@@ -119,6 +165,9 @@ export const DataTablePrime = ({
               onPageIndexChange(e.first);
             }
           }}
+          onSort={setSorting}
+          sortField={sorting?.sortField}
+          sortOrder={sorting?.sortOrder}
           paginator
           totalRecords={data?.count}
           rowsPerPageOptions={paginationOptions}
@@ -132,12 +181,19 @@ export const DataTablePrime = ({
           scrollable
           scrollHeight="flex"
           loading={isFetching}
+          removableSort
+          stateStorage="local"
+          stateKey={`dt-state-${dbName}-${tableName}`}
         >
-          {columns?.map((col) => (
+          {visibleColumns?.map((col) => (
             <Column
               key={col.column_name}
+              sortable
               field={col.column_name}
-              header={col.column_name}
+              header={headerTemplate({
+                columnName: col.column_name,
+                udt_name: col.udt_name,
+              })}
               body={columnTemplate({
                 columnName: col.column_name,
                 formatDates,
