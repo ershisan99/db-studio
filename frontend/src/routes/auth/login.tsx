@@ -6,9 +6,9 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-  Input,
+  FormInput,
+  FormSelect,
   Label,
-  Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
@@ -16,30 +16,122 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@/components/ui";
-import { useLoginMutation } from "@/services/db";
+import { type LoginArgs, useLoginMutation } from "@/services/db";
 import { useSessionStore } from "@/state/db-session-store";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { createFileRoute } from "@tanstack/react-router";
-import { type FormEventHandler, useState } from "react";
-import { toast } from "sonner";
+import { useState } from "react";
+import { type Control, useForm } from "react-hook-form";
+import { z } from "zod";
 
 export const Route = createFileRoute("/auth/login")({
   component: LoginForm,
 });
 
-function DatabaseTypeSelector() {
+const loginWithConnectionStringSchema = z.object({
+  type: z.enum(["mysql", "postgres"]),
+  connectionString: z.string().trim().min(1, "Connection string is required"),
+});
+
+type LoginWithConnectionStringFields = z.infer<
+  typeof loginWithConnectionStringSchema
+>;
+
+function ConnectionStringForm({
+  onSubmit,
+}: {
+  onSubmit: (values: LoginWithConnectionStringFields) => void;
+}) {
+  const { control, handleSubmit } = useForm<LoginWithConnectionStringFields>({
+    resolver: zodResolver(loginWithConnectionStringSchema),
+    defaultValues: {
+      type: "postgres",
+      connectionString: "",
+    },
+  });
+
   return (
-    <div className="grid gap-2">
-      <Label htmlFor="dbType">Database type</Label>
-      <Select defaultValue={"postgres"} name={"type"}>
-        <SelectTrigger className="w-full" id={"dbType"}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="postgres">Postgres</SelectItem>
-          <SelectItem value="mysql">MySQL</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
+    <form
+      className="grid gap-2"
+      onSubmit={handleSubmit(onSubmit)}
+      id={"login-form"}
+    >
+      <DatabaseTypeSelector control={control} />
+      <FormInput
+        label={"Connection string"}
+        name={"connectionString"}
+        control={control}
+        placeholder={"postgres://postgres:postgres@localhost:5432/postgres"}
+      />
+    </form>
+  );
+}
+
+const loginWithConnectionFieldsSchema = z.object({
+  type: z.enum(["mysql", "postgres"]),
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(1, "Password is required"),
+  host: z.string().min(1, "Host is required"),
+  port: z.string().min(1, "Port is required"),
+  database: z.string().min(1, "Database is required"),
+  ssl: z.enum(["false", "true", "require", "allow", "prefer", "verify-full"]),
+});
+type LoginWithConnectionFields = z.infer<
+  typeof loginWithConnectionFieldsSchema
+>;
+
+function ConnectionFieldsForm({
+  onSubmit,
+}: {
+  onSubmit: (values: LoginWithConnectionFields) => void;
+}) {
+  const { control, handleSubmit } = useForm<LoginWithConnectionFields>({
+    resolver: zodResolver(loginWithConnectionFieldsSchema),
+    defaultValues: {
+      type: "postgres",
+      host: "",
+      port: "",
+      username: "",
+      password: "",
+      ssl: "prefer",
+      database: "",
+    },
+  });
+
+  return (
+    <form
+      className="grid gap-3"
+      onSubmit={handleSubmit(onSubmit)}
+      id={"login-form"}
+    >
+      <DatabaseTypeSelector control={control} />
+      <FormInput
+        name={"host"}
+        control={control}
+        label={"Host"}
+        placeholder={"127.0.0.1"}
+      />
+      <FormInput name={"port"} control={control} label={"Port"} />
+      <FormInput name={"username"} control={control} label={"User"} />
+      <FormInput name={"password"} control={control} label={"Password"} />
+      <FormInput name={"database"} control={control} label={"Database"} />
+      <div className="grid gap-2">
+        <Label htmlFor="ssl">SSL mode</Label>
+        <FormSelect control={control} name={"ssl"}>
+          <SelectTrigger className="w-full" id={"ssl"}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="false">false</SelectItem>
+            <SelectItem value="true">true</SelectItem>
+            <SelectItem value="require">require</SelectItem>
+            <SelectItem value="allow">allow</SelectItem>
+            <SelectItem value="prefer">prefer</SelectItem>
+            <SelectItem value="verify-full">verify-full</SelectItem>
+          </SelectContent>
+        </FormSelect>
+      </div>
+    </form>
   );
 }
 
@@ -49,78 +141,9 @@ function LoginForm() {
   const { mutateAsync } = useLoginMutation();
   const addSession = useSessionStore.use.addSession();
 
-  const handleSubmit: FormEventHandler<HTMLFormElement> = async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const connectionString = formData.get("connectionString");
-    const type = formData.get("type");
-    if (connectionMethod === "connectionString") {
-      if (
-        connectionString != null &&
-        typeof connectionString === "string" &&
-        type != null &&
-        typeof type === "string"
-      ) {
-        try {
-          await mutateAsync({ connectionString, type });
-          addSession({ connectionString, type });
-        } catch (error) {
-          console.log(error);
-          toast.error("Invalid connection string");
-          return;
-        }
-      } else {
-        toast.error("Please fill all fields");
-      }
-      return;
-    }
-
-    const username = formData.get("username");
-    const password = formData.get("password");
-    const host = formData.get("host");
-    const port = formData.get("port");
-    const database = formData.get("database");
-    const ssl = formData.get("ssl");
-
-    if (
-      database == null ||
-      host == null ||
-      password == null ||
-      port == null ||
-      ssl == null ||
-      type == null ||
-      username == null
-    ) {
-      toast.error("Please fill all fields");
-      return;
-    }
-    if (
-      typeof database !== "string" ||
-      typeof host !== "string" ||
-      typeof password !== "string" ||
-      typeof port !== "string" ||
-      typeof ssl !== "string" ||
-      typeof type !== "string" ||
-      typeof username !== "string"
-    ) {
-      return;
-    }
-    try {
-      await mutateAsync({
-        username,
-        password,
-        host,
-        type,
-        port,
-        database,
-        ssl,
-      });
-      addSession({ username, password, host, type, port, database, ssl });
-    } catch (error) {
-      console.log(error);
-      toast.error("Invalid connection string");
-      return;
-    }
+  const onSubmit = async (args: LoginArgs) => {
+    await mutateAsync(args);
+    addSession(args);
   };
 
   return (
@@ -133,11 +156,7 @@ function LoginForm() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form
-            className="grid gap-4"
-            id={"login-form"}
-            onSubmit={handleSubmit}
-          >
+          <div className="grid gap-4">
             <ToggleGroup
               type="single"
               className="w-full border gap-0.5 rounded-md"
@@ -158,85 +177,11 @@ function LoginForm() {
               </ToggleGroupItem>
             </ToggleGroup>
             {connectionMethod === "fields" ? (
-              <>
-                <DatabaseTypeSelector />
-                <div className="grid gap-2">
-                  <Label htmlFor="host">Host</Label>
-                  <Input
-                    id="host"
-                    name="host"
-                    type="text"
-                    required
-                    placeholder={"127.0.0.1"}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="port">Port</Label>
-                  <Input
-                    id="port"
-                    name="port"
-                    type="text"
-                    required
-                    defaultValue={"5432"}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="username">User</Label>
-                  <Input id="username" name="username" type="text" required />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    name="password"
-                    id="password"
-                    type="password"
-                    required
-                    placeholder={"********"}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="database">Database</Label>
-                  <Input
-                    name="database"
-                    id="database"
-                    type="text"
-                    defaultValue={"postgres"}
-                    placeholder={"postgres"}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="ssl">SSL mode</Label>
-                  <Select defaultValue={"false"} name={"ssl"}>
-                    <SelectTrigger className="w-full" id={"ssl"}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="false">false</SelectItem>
-                      <SelectItem value="true">true</SelectItem>
-                      <SelectItem value="require">require</SelectItem>
-                      <SelectItem value="allow">allow</SelectItem>
-                      <SelectItem value="prefer">prefer</SelectItem>
-                      <SelectItem value="verify-full">verify-full</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </>
+              <ConnectionFieldsForm onSubmit={onSubmit} />
             ) : (
-              <div className="grid gap-2">
-                <DatabaseTypeSelector />
-                <Label htmlFor="connectionString">Connection string</Label>
-                <Input
-                  name="connectionString"
-                  id="connectionString"
-                  type="text"
-                  required
-                  placeholder={
-                    "postgres://postgres:postgres@localhost:5432/postgres"
-                  }
-                />
-              </div>
+              <ConnectionStringForm onSubmit={onSubmit} />
             )}
-          </form>
+          </div>
         </CardContent>
         <CardFooter>
           <Button className="w-full" form={"login-form"}>
@@ -244,6 +189,27 @@ function LoginForm() {
           </Button>
         </CardFooter>
       </Card>
+    </div>
+  );
+}
+
+function DatabaseTypeSelector({
+  control,
+}: {
+  control: Control<any>;
+}) {
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor="dbType">Database type</Label>
+      <FormSelect control={control} name={"type"}>
+        <SelectTrigger className="w-full" id={"dbType"}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="postgres">Postgres</SelectItem>
+          <SelectItem value="mysql">MySQL</SelectItem>
+        </SelectContent>
+      </FormSelect>
     </div>
   );
 }
