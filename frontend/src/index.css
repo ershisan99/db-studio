@@ -74,11 +74,11 @@
     text-underline-position: under;
     --sidebar-width: 264px;
   }
-  
+
   .sidebar-closed {
     --sidebar-width: 0;
   }
-  
+
   .grid-rows-layout {
     grid-template-rows: 60px 1fr;
   }

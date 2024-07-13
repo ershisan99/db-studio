@@ -49,8 +49,10 @@ function RawSessionSelector() {
       value={currentSessionId ? currentSessionId.toString() : ""}
       onValueChange={handleSessionSelected}
     >
-      <SelectTrigger className="max-w-full">
-        <SelectValue placeholder="Select a Database" />
+      <SelectTrigger className="w-full">
+        <span className={"truncate max-w-[calc(100%-1.5rem)]"}>
+          <SelectValue placeholder="Select a Database" />
+        </span>
       </SelectTrigger>
       <SelectContent>{mappedSessions}</SelectContent>
     </Select>
