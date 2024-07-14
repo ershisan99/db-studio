@@ -1,3 +1,4 @@
+import { TableView } from "@/components/db-table-view/table";
 import {
   Button,
   DataTablePagination,
@@ -6,12 +7,6 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
   FormInput,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
   Tooltip,
 } from "@/components/ui";
 import { cn, isImageUrl, isUrl } from "@/lib/utils";
@@ -23,11 +18,10 @@ import {
   type PaginationState,
   type SortingState,
   type VisibilityState,
-  flexRender,
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowUp, Info, Rows3, Search } from "lucide-react";
+import { Info, Rows3, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -237,102 +231,7 @@ export const DataTable = ({
 
       <div className="rounded-md border min-h-0 h-full w-full min-w-0 flex flex-col">
         <div className={"flex flex-col flex-1 overflow-auto relative"}>
-          <Table
-            className={"table-fixed min-w-full"}
-            {...{
-              style: {
-                width: table.getCenterTotalSize(),
-              },
-            }}
-          >
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id} className={"sticky top-0"}>
-                  {headerGroup.headers.map((header) => {
-                    const sorted = header.column.getIsSorted();
-
-                    return (
-                      <TableHead
-                        className={"p-0 relative"}
-                        key={header.id}
-                        style={{
-                          width: header.getSize(),
-                        }}
-                      >
-                        <Button
-                          variant="ghost"
-                          onClick={header.column.getToggleSortingHandler()}
-                          className={"select-text"}
-                          title={
-                            header.column.getNextSortingOrder() === "asc"
-                              ? "Sort ascending"
-                              : header.column.getNextSortingOrder() === "desc"
-                                ? "Sort descending"
-                                : "Clear sort"
-                          }
-                        >
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext(),
-                              )}
-                          <ArrowUp
-                            className={cn(
-                              "ml-2 size-4 opacity-0 transition-transform",
-                              sorted && "opacity-100",
-                              (sorted as string) === "desc" && "rotate-180",
-                            )}
-                          />
-                        </Button>
-                        <div
-                          {...{
-                            onDoubleClick: () => header.column.resetSize(),
-                            onMouseDown: header.getResizeHandler(),
-                            onTouchStart: header.getResizeHandler(),
-                            className: `resizer ${header.column.getIsResizing() ? "isResizing" : ""}`,
-                          }}
-                        />
-                      </TableHead>
-                    );
-                  })}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell
-                        key={cell.id}
-                        style={{
-                          width: cell.column.getSize(),
-                        }}
-                      >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center"
-                  >
-                    No results.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+          <TableView table={table} columnLength={columns.length} />
         </div>
       </div>
       <DataTablePagination table={table} />
