@@ -95,7 +95,13 @@ const app = new Elysia({ prefix: "/api" })
     "/databases/:dbName/tables/:tableName/data",
     async ({ query, params, jwt, set, cookie: { auth } }) => {
       const { tableName, dbName } = params;
-      const { perPage = "50", page = "0", sortField, sortDesc } = query;
+      const {
+        perPage = "50",
+        page = "0",
+        sortField,
+        sortDesc,
+        whereQuery,
+      } = query;
       const credentials = await jwt.verify(auth.value);
 
       if (!credentials) {
@@ -111,6 +117,7 @@ const app = new Elysia({ prefix: "/api" })
         page: Number.parseInt(page, 10),
         sortField,
         sortDesc: sortDesc === "true",
+        whereQuery,
       });
     },
   )
