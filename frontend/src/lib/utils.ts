@@ -1,3 +1,4 @@
+import { DEFAULT_PAGE_INDEX, DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { z } from "zod";
@@ -42,3 +43,29 @@ const imageUrlRegex = new RegExp(
 export function isImageUrl(value: string) {
   return value.match(imageUrlRegex);
 }
+
+export const cleanEmptyParams = <T extends Record<string, unknown>>(
+  search: T,
+) => {
+  const newSearch = { ...search };
+  for (const key of Object.keys(search)) {
+    const value = newSearch[key];
+    if (
+      value === undefined ||
+      value === "" ||
+      (typeof value === "number" && Number.isNaN(value))
+    )
+      delete newSearch[key];
+  }
+
+  if (search.pageIndex === DEFAULT_PAGE_INDEX) {
+    // @ts-ignore
+    newSearch.pageIndex = undefined;
+  }
+  if (search.pageSize === DEFAULT_PAGE_SIZE) {
+    // @ts-ignore
+    newSearch.pageSize = undefined;
+  }
+
+  return newSearch;
+};
