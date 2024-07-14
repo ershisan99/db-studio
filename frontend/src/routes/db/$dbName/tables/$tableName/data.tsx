@@ -1,5 +1,4 @@
 import { DataTable } from "@/components/db-table-view/data-table";
-import { DataTablePrime } from "@/components/db-table-view/data-table-prime";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 
@@ -32,12 +31,12 @@ function TableView() {
 
   return (
     <div className="p-3 h-layout w-layout">
-      <DataTablePrime
+      <DataTable
         key={tableName}
         dbName={dbName}
         tableName={tableName}
         pageSize={pageSize}
-        offset={pageIndex}
+        pageIndex={pageIndex}
         onPageIndexChange={updatePageIndex}
         onPageSizeChange={updatePageSize}
       />
