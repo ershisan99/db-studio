@@ -24,7 +24,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { Rows3 } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
 import { z } from "zod";
 
@@ -42,6 +42,7 @@ export const Route = createFileRoute("/db/$dbName/tables/$tableName/data")({
 
 function Component() {
   const { tableName, dbName } = Route.useParams();
+
   const { filters, setFilters } = useFilters(Route.fullPath);
   const [whereQuery, setWhereQuery] = useState("");
   const [columnSizing, setColumnSizing] = useLocalStorage<ColumnSizingState>(
@@ -64,7 +65,13 @@ function Component() {
 
   const sortingState = useMemo(() => sortByToState(filters), [filters]);
   const columns = useColumns({ dbName, tableName });
-
+  const [columnOrder, setColumnOrder] = useState<string[]>(() =>
+    columns.map((c) => c.id ?? ""),
+  );
+  useEffect(() => {
+    if (columnOrder.length !== 0) return;
+    setColumnOrder(columns.map((c) => c.id ?? ""));
+  }, [columns, columnOrder.length]);
   const { data, refetch } = useTableDataQuery({
     whereQuery,
     tableName,
@@ -115,12 +122,14 @@ function Component() {
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
     manualSorting: true,
+    onColumnOrderChange: setColumnOrder,
     onColumnSizingChange: setColumnSizing,
     onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: handlePaginationChange,
     onSortingChange: handleSortingChange,
     rowCount: data?.count ?? 0,
     state: {
+      columnOrder,
       sorting: sortingState,
       columnSizing: columnSizing,
       columnVisibility,
@@ -136,7 +145,11 @@ function Component() {
             <Rows3 /> {tableName}
             <WhereClauseForm onSubmit={handleWhereClauseFormSubmit} />
           </h1>
-          <ColumnsDropdown table={table} />
+          <ColumnsDropdown
+            table={table}
+            columnOrder={columnOrder}
+            setColumnOrder={setColumnOrder}
+          />
           <p>
             Rows: <strong>{data?.count}</strong>
           </p>

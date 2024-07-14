@@ -20,6 +20,7 @@ const buildColumns = ({
     accessorKey: column_name,
     title: column_name,
     size: 300,
+    id: column_name,
     header: () => {
       return (
         <div
