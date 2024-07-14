@@ -21,7 +21,12 @@ import { useSessionStore } from "@/state/db-session-store";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { type Control, useForm } from "react-hook-form";
+import {
+  type Control,
+  type FieldPath,
+  type FieldValues,
+  useForm,
+} from "react-hook-form";
 import { z } from "zod";
 
 export const Route = createFileRoute("/auth/login")({
@@ -56,7 +61,7 @@ function ConnectionStringForm({
       onSubmit={handleSubmit(onSubmit)}
       id={"login-form"}
     >
-      <DatabaseTypeSelector control={control} />
+      <DatabaseTypeSelector control={control} name={"type"} />
       <FormInput
         label={"Connection string"}
         name={"connectionString"}
@@ -104,7 +109,7 @@ function ConnectionFieldsForm({
       onSubmit={handleSubmit(onSubmit)}
       id={"login-form"}
     >
-      <DatabaseTypeSelector control={control} />
+      <DatabaseTypeSelector control={control} name={"type"} />
       <FormInput
         name={"host"}
         control={control}
@@ -193,15 +198,17 @@ function LoginForm() {
   );
 }
 
-function DatabaseTypeSelector({
+function DatabaseTypeSelector<T extends FieldValues>({
   control,
+  name,
 }: {
-  control: Control<any>;
+  control: Control<T>;
+  name: FieldPath<T>;
 }) {
   return (
     <div className="grid gap-2">
       <Label htmlFor="dbType">Database type</Label>
-      <FormSelect control={control} name={"type"}>
+      <FormSelect control={control} name={name}>
         <SelectTrigger className="w-full" id={"dbType"}>
           <SelectValue />
         </SelectTrigger>

@@ -97,10 +97,6 @@ function TableDetailsTable() {
           <Link
             from={Route.fullPath}
             to={"./data"}
-            search={{
-              pageIndex: 0,
-              pageSize: 10,
-            }}
             className={cn("flex gap-2 items-center", "hover:underline")}
           >
             Explore data <ArrowRight className={"size-4"} />

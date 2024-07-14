@@ -4,7 +4,7 @@ import { useSettingsStore } from "@/state";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
 
-const buildColumns = ({
+const buildColumns = <T,>({
   columns,
   formatDates,
   showImagesPreview,
@@ -13,8 +13,8 @@ const buildColumns = ({
 
   formatDates: boolean;
   showImagesPreview: boolean;
-}): ColumnDef<any>[] => {
-  if (!columns) return [] as ColumnDef<any>[];
+}): ColumnDef<T>[] => {
+  if (!columns) return [] as ColumnDef<T>[];
 
   return columns.map(({ column_name, udt_name, data_type }) => ({
     accessorKey: column_name,
@@ -67,6 +67,9 @@ const buildColumns = ({
           </a>
         );
       }
+      if (typeof finalValue === "boolean") {
+        finalValue = finalValue ? "true" : "false";
+      }
       return (
         <div
           className={cn(
@@ -79,7 +82,7 @@ const buildColumns = ({
         </div>
       );
     },
-  })) as ColumnDef<any>[];
+  })) as ColumnDef<T>[];
 };
 
 export const useColumns = ({

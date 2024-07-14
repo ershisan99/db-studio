@@ -1,5 +1,6 @@
 import { useColumns } from "@/components/db-table-view/columns";
 import { ColumnsDropdown } from "@/components/db-table-view/columns-dropdown";
+import { ResetStateDropdown } from "@/components/db-table-view/reset-state-dropdown";
 import {
   TableScrollContainer,
   TableView,
@@ -29,8 +30,8 @@ import { useLocalStorage } from "usehooks-ts";
 import { z } from "zod";
 
 const tableSearchSchema = z.object({
-  pageSize: z.number().catch(10),
-  pageIndex: z.number().catch(0),
+  pageSize: z.number().optional(),
+  pageIndex: z.number().optional(),
   sortField: z.string().optional(),
   sortDesc: z.boolean().optional(),
 });
@@ -42,6 +43,7 @@ export const Route = createFileRoute("/db/$dbName/tables/$tableName/data")({
 
 function Component() {
   const { tableName, dbName } = Route.useParams();
+  const columns = useColumns({ dbName, tableName });
 
   const { filters, setFilters } = useFilters(Route.fullPath);
   const [whereQuery, setWhereQuery] = useState("");
@@ -54,6 +56,15 @@ function Component() {
       `columnVisibility-${dbName}-${tableName}`,
       {},
     );
+  const [columnOrder, setColumnOrder] = useLocalStorage<string[]>(
+    `columnOrder-${dbName}-${tableName}`,
+    () => columns.map((c) => c.id ?? ""),
+  );
+
+  useEffect(() => {
+    if (columnOrder.length === columns.length) return;
+    setColumnOrder(columns.map((c) => c.id ?? ""));
+  }, [columns, columnOrder.length, setColumnOrder]);
 
   const paginationState = useMemo(
     () => ({
@@ -64,20 +75,13 @@ function Component() {
   );
 
   const sortingState = useMemo(() => sortByToState(filters), [filters]);
-  const columns = useColumns({ dbName, tableName });
-  const [columnOrder, setColumnOrder] = useState<string[]>(() =>
-    columns.map((c) => c.id ?? ""),
-  );
-  useEffect(() => {
-    if (columnOrder.length !== 0) return;
-    setColumnOrder(columns.map((c) => c.id ?? ""));
-  }, [columns, columnOrder.length]);
+
   const { data, refetch } = useTableDataQuery({
     whereQuery,
     tableName,
     dbName,
-    perPage: filters.pageSize,
-    page: filters.pageIndex,
+    perPage: filters.pageSize ?? DEFAULT_PAGE_SIZE,
+    page: filters.pageIndex ?? DEFAULT_PAGE_INDEX,
     sortField: filters.sortField,
     sortDesc: filters.sortDesc,
   });
@@ -150,6 +154,7 @@ function Component() {
             columnOrder={columnOrder}
             setColumnOrder={setColumnOrder}
           />
+          <ResetStateDropdown table={table} />
           <p>
             Rows: <strong>{data?.count}</strong>
           </p>

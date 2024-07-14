@@ -94,7 +94,6 @@ function SidebarContent() {
                 aria-label={"Explore Data"}
                 to={"/db/$dbName/tables/$tableName/data"}
                 params={{ tableName: table.table_name, dbName: dbName }}
-                search={{ pageIndex: 0, pageSize: 10 }}
               >
                 <Rows3 className={"size-4 shrink-0"} />
               </Link>

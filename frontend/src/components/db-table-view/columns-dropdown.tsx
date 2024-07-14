@@ -73,7 +73,7 @@ export function ColumnsDropdown<T>({
     if (active.id !== over?.id) {
       setColumnOrder((items) => {
         const oldIndex = items.findIndex((id) => id === active.id);
-        const newIndex = items.findIndex((id) => id === over.id);
+        const newIndex = items.findIndex((id) => id === over?.id);
 
         return arrayMove(items, oldIndex, newIndex);
       });
@@ -81,7 +81,7 @@ export function ColumnsDropdown<T>({
   }
 }
 
-const SortableItem = ({ column }: { column: Column<any> }) => {
+const SortableItem = <T,>({ column }: { column: Column<T> }) => {
   const {
     attributes,
     listeners,
