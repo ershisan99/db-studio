@@ -47,6 +47,7 @@ export type GetTableDataArgs = {
   page?: number;
   sortField?: string;
   sortDesc?: boolean;
+  whereQuery?: string;
 };
 
 export type GetTableDataResponse = {

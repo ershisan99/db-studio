@@ -5,12 +5,14 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
+  FormInput,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
+  Tooltip,
 } from "@/components/ui";
 import { cn, isImageUrl, isUrl } from "@/lib/utils";
 import { useTableColumnsQuery, useTableDataQuery } from "@/services/db";
@@ -25,8 +27,9 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowUp, Rows3 } from "lucide-react";
+import { ArrowUp, Info, Rows3, Search } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
 
 export const DataTable = ({
   tableName,
@@ -43,14 +46,16 @@ export const DataTable = ({
   onPageIndexChange: (pageIndex: number) => void;
   onPageSizeChange: (pageSize: number) => void;
 }) => {
+  const whereQueryForm = useForm<{ whereQuery: string }>();
   const formatDates = useSettingsStore.use.formatDates();
   const showImagesPreview = useSettingsStore.use.showImagesPreview();
-
+  const [whereQuery, setWhereQuery] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
   const { data: details } = useTableColumnsQuery({ dbName, tableName });
-  const { data } = useTableDataQuery({
+  const { data, refetch } = useTableDataQuery({
+    whereQuery,
     tableName,
     dbName,
     perPage: pageSize,
@@ -58,7 +63,6 @@ export const DataTable = ({
     sortDesc: sorting[0]?.desc,
     sortField: sorting[0]?.id,
   });
-
   const paginationUpdater: OnChangeFn<PaginationState> = (args) => {
     if (typeof args === "function") {
       const newArgs = args({
@@ -87,7 +91,7 @@ export const DataTable = ({
         return (
           <div
             className={cn(
-              "whitespace-nowrap",
+              "whitespace-nowrap ",
               data_type === "integer" && "text-right",
             )}
           >
@@ -170,6 +174,37 @@ export const DataTable = ({
       <div className={"flex gap-4 items-center justify-between"}>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Rows3 /> {tableName}
+          <form
+            className={"flex gap-2"}
+            onSubmit={whereQueryForm.handleSubmit((data) => {
+              if (data.whereQuery === whereQuery) {
+                void refetch();
+                return;
+              }
+              setWhereQuery(data.whereQuery);
+            })}
+          >
+            <FormInput
+              name={"whereQuery"}
+              control={whereQueryForm.control}
+              placeholder="WHERE clause"
+            />
+            <Button variant={"outline"} size={"icon"} type={"submit"}>
+              <Search className={"size-[1.2rem] shrink-0"} />
+            </Button>
+            <Tooltip
+              content={
+                <div>
+                  Your input will be prefixed with WHERE and appended to the raw
+                  SQL query.
+                  <div>You can use AND, OR, NOT, BETWEEN, LIKE, =, etc.</div>
+                  <div>To remove the WHERE clause, submit an empty input.</div>
+                </div>
+              }
+            >
+              <Info className={"size-4 shrink-0 cursor-help"} />
+            </Tooltip>
+          </form>
         </h1>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -227,6 +262,7 @@ export const DataTable = ({
                         <Button
                           variant="ghost"
                           onClick={header.column.getToggleSortingHandler()}
+                          className={"select-text"}
                           title={
                             header.column.getNextSortingOrder() === "asc"
                               ? "Sort ascending"

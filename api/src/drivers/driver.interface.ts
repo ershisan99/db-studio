@@ -24,7 +24,11 @@ export interface Driver {
   ): Promise<any[]>;
   getTableData(
     credentials: Credentials,
-    args: WithSortPagination<{ tableName: string; dbName: string }>,
+    args: WithSortPagination<{
+      tableName: string;
+      dbName: string;
+      whereQuery?: string;
+    }>,
   ): Promise<{
     count: number;
     data: Record<string, any>[];

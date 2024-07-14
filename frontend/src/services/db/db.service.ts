@@ -17,6 +17,8 @@ import type {
   TableForeignKeys,
   TableIndexes,
 } from "@/services/db/db.types";
+import { HTTPError } from "ky";
+import { toast } from "sonner";
 
 class DbService {
   login(data: LoginArgs) {
@@ -44,12 +46,29 @@ class DbService {
     perPage,
     sortField,
     sortDesc,
+    whereQuery,
   }: GetTableDataArgs) {
     return dbInstance
       .get(`api/databases/${dbName}/tables/${tableName}/data`, {
-        searchParams: getValuable({ perPage, page, sortField, sortDesc }),
+        searchParams: getValuable({
+          perPage,
+          page,
+          sortField,
+          sortDesc,
+          whereQuery,
+        }),
       })
-      .json<GetTableDataResponse>();
+      .json<GetTableDataResponse>()
+      .catch(async (error) => {
+        if (error instanceof HTTPError) {
+          const errorJson = await error.response.json();
+          console.log(errorJson);
+          toast.error(errorJson.message);
+        } else {
+          toast.error(error.message);
+        }
+        return { count: 0, data: [] };
+      });
   }
 
   getTableColumns({ dbName, tableName }: GetTableColumnsArgs) {

@@ -159,22 +159,31 @@ export class PostgresDriver implements Driver {
       page,
       sortDesc,
       sortField,
-    }: WithSortPagination<{ tableName: string; dbName: string }>,
+      whereQuery,
+    }: WithSortPagination<{
+      tableName: string;
+      dbName: string;
+      whereQuery?: string;
+    }>,
   ) {
     const sql = await this.queryRunner(credentials);
 
     const offset = (perPage * page).toString();
-    const rows = sql`
-    SELECT COUNT(*)
-    FROM ${sql(dbName)}.${sql(tableName)}`;
 
-    const tables = sql`
+    const rowsQuery = `
+    SELECT COUNT(*)
+    FROM "${dbName}"."${tableName}"
+    ${whereQuery ? `WHERE ${whereQuery}` : ""}`;
+
+    const tablesQuery = `
     SELECT *
-    FROM ${sql(dbName)}.${sql(tableName)}
-    ${sortField ? sql`ORDER BY ${sql(sortField)} ${sortDesc ? sql`DESC` : sql`ASC`}` : sql``}
+    FROM "${dbName}"."${tableName}"
+    ${whereQuery ? `WHERE ${whereQuery}` : ""}
+    ${sortField ? `ORDER BY "${sortField}" ${sortDesc ? "DESC" : "ASC"}` : ""}
     LIMIT ${perPage} OFFSET ${offset}
     `;
-
+    const rows = sql.unsafe(rowsQuery);
+    const tables = sql.unsafe(tablesQuery);
     const [[count], data] = await Promise.all([rows, tables]);
 
     void sql.end();
