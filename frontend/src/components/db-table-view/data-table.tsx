@@ -1,4 +1,7 @@
-import { TableView } from "@/components/db-table-view/table";
+import {
+  TableScrollContainer,
+  TableView,
+} from "@/components/db-table-view/table";
 import {
   Button,
   DataTablePagination,
@@ -230,9 +233,9 @@ export const DataTable = ({
       </div>
 
       <div className="rounded-md border min-h-0 h-full w-full min-w-0 flex flex-col">
-        <div className={"flex flex-col flex-1 overflow-auto relative"}>
+        <TableScrollContainer>
           <TableView table={table} columnLength={columns.length} />
-        </div>
+        </TableScrollContainer>
       </div>
       <DataTablePagination table={table} />
     </div>

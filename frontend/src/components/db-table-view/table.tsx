@@ -10,6 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import { type Table as ReactTable, flexRender } from "@tanstack/react-table";
 import { ArrowUp } from "lucide-react";
+import type { PropsWithChildren } from "react";
 
 export function TableView<T>({
   table,
@@ -106,5 +107,13 @@ export function TableView<T>({
         )}
       </TableBody>
     </Table>
+  );
+}
+
+export function TableScrollContainer({ children }: PropsWithChildren) {
+  return (
+    <div className={"flex flex-col flex-1 overflow-auto relative"}>
+      {children}
+    </div>
   );
 }
