@@ -94,7 +94,10 @@ export type QueryRawSqlArgs = {
   query: string;
 };
 
-export type QueryRawSqlResponse = Array<Record<string, any>>;
+export type QueryRawSqlResponse = {
+  count: number;
+  data: Array<Record<string, any>>;
+}[];
 
 export type TableForeignKey = {
   conname: string;

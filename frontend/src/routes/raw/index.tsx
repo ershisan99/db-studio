@@ -1,15 +1,18 @@
-import { Button, SqlDataTable, SqlDataTableCell } from "@/components/ui";
+import {
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui";
 import { useQueryRawSqlMutation } from "@/services/db";
 import { useUiStore } from "@/state";
 import Editor from "@monaco-editor/react";
 import { createFileRoute } from "@tanstack/react-router";
-import {
-  type ColumnDef,
-  getCoreRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
 import { ArrowRight } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 export const Route = createFileRoute("/raw/")({
   component: Component,
@@ -26,21 +29,6 @@ function Component() {
 
     mutate({ query });
   };
-  const columns = useMemo<ColumnDef<any>[]>(() => {
-    if (!data) return [] as ColumnDef<any>[];
-
-    return Object.keys(data[0]).map((key) => ({
-      header: key,
-      accessorKey: key,
-      cell: ({ row }) => <SqlDataTableCell row={row} column_name={key} />,
-    })) as ColumnDef<any>[];
-  }, [data]);
-
-  const table = useReactTable({
-    data: data ?? [],
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  });
 
   return (
     <div className={"h-layout w-layout p-3"}>
@@ -61,17 +49,46 @@ function Component() {
           }}
         />
         <div className={"flex gap-4 items-center justify-between"}>
-          {data && <p>Result: {data.length} rows</p>}
           <Button disabled={!query} onClick={handleSubmit} className={"gap-2"}>
             Execute Query <ArrowRight className={"size-4"} />
           </Button>
         </div>
-        {data && (
-          <div className="rounded-md border min-h-0 h-full overflow-auto w-full min-w-0">
-            <SqlDataTable table={table} columnsLength={columns.length} />
-          </div>
-        )}
+        {data?.map((row, i) => {
+          return (
+            // biome-ignore lint/suspicious/noArrayIndexKey:
+            <div key={i}>
+              <div>count: {row.count}</div>
+              {row.data.length > 0 && <RenderTable data={row.data} />}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
+
+const RenderTable = ({ data }: { data: Array<Record<string, any>> }) => {
+  const columns = Object.keys(data[0]);
+
+  return (
+    <Table className="w-max">
+      <TableHeader>
+        <TableRow>
+          {columns.map((column) => (
+            <TableHead key={column}>{column}</TableHead>
+          ))}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {data.map((row, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+          <TableRow key={i}>
+            {columns.map((column) => (
+              <TableCell key={column}>{row[column]}</TableCell>
+            ))}
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+};

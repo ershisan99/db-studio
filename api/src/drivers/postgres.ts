@@ -348,13 +348,18 @@ export class PostgresDriver implements Driver {
     const sql = await this.queryRunner(credentials);
 
     const result = await sql.unsafe(query);
-
-    void sql.end();
-
-    return {
-      count: result.length,
-      data: result,
-    };
+    if ("count" in result && result.count !== undefined) {
+      return [
+        {
+          count: result.count,
+          data: result,
+        },
+      ];
+    }
+    return result.map((row) => ({
+      count: row.count,
+      data: row,
+    }));
   }
 }
 
