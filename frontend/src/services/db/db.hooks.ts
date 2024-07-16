@@ -42,6 +42,12 @@ export const useTablesListQuery = (args: GetTablesListArgs) => {
 
 export const useTableDataQuery = (args: GetTableDataArgs) => {
   return useQuery({
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
+    refetchInterval: false,
+    refetchIntervalInBackground: false,
+    staleTime: Number.POSITIVE_INFINITY,
     queryKey: [DB_QUERY_KEYS.TABLES.DATA, args],
     queryFn: () => dbService.getTableData(args),
     placeholderData: (previousData, previousQuery) => {

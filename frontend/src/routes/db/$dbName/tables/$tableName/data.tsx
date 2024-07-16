@@ -86,6 +86,14 @@ function Component() {
     sortDesc: filters.sortDesc,
   });
 
+  const [tableData, setTableData] = useState<Array<Record<string, any>>>([]);
+  console.log(tableData);
+  const [editedRows, setEditedRows] = useState({});
+  console.log("editedRows", editedRows);
+  useEffect(() => {
+    setTableData(structuredClone(data?.data) ?? []);
+  }, [data]);
+
   const handleWhereClauseFormSubmit = useCallback(
     ({ whereClause }: WhereClauseFormValues) => {
       if (whereClause === whereQuery) {
@@ -120,9 +128,26 @@ function Component() {
   );
 
   const table = useReactTable({
+    meta: {
+      editedRows,
+      setEditedRows,
+      updateData: (rowIndex: number, columnId: string, value: string) => {
+        setTableData((old) =>
+          old.map((row, index) => {
+            if (index === rowIndex) {
+              return {
+                ...old[rowIndex],
+                [columnId]: value,
+              };
+            }
+            return row;
+          }),
+        );
+      },
+    },
     columnResizeMode: "onChange",
     columns,
-    data: data?.data ?? [],
+    data: tableData,
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
     manualSorting: true,

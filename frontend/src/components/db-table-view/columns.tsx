@@ -1,18 +1,17 @@
-import { cn, isImageUrl, isUrl } from "@/lib/utils";
+import { BodyCell } from "@/components/db-table-view/body-cell";
+import { UrlWithPreview } from "@/components/db-table-view/url-with-preview";
+import { cn, isUrl } from "@/lib/utils";
 import { type TableColumns, useTableColumnsQuery } from "@/services/db";
 import { useSettingsStore } from "@/state";
 import type { ColumnDef } from "@tanstack/react-table";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 const buildColumns = <T,>({
   columns,
   formatDates,
-  showImagesPreview,
 }: {
   columns?: TableColumns;
-
   formatDates: boolean;
-  showImagesPreview: boolean;
 }): ColumnDef<T>[] => {
   if (!columns) return [] as ColumnDef<T>[];
 
@@ -21,6 +20,7 @@ const buildColumns = <T,>({
     title: column_name,
     size: 300,
     id: column_name,
+    enableSorting: true,
     header: () => {
       return (
         <div
@@ -33,9 +33,35 @@ const buildColumns = <T,>({
         </div>
       );
     },
-    enableSorting: true,
-    cell: ({ row }) => {
-      const value = row.getValue(column_name) as any;
+    cell: ({ row, table, column }) => {
+      const initialValue = row.getValue(column_name) as any;
+      const [value, setValue] = useState(initialValue);
+
+      const [isEditing, setIsEditing] = useState(false);
+      function handleDoubleClick() {
+        setIsEditing(true);
+      }
+      function handleSave() {
+        if (value === initialValue) return;
+        (table.options.meta as any)?.setEditedRows((old) => ({
+          ...old,
+          [row.index]: true,
+        }));
+        (table.options.meta as any)?.updateData(row.index, column.id, value);
+        setIsEditing(false);
+      }
+      if (isEditing) {
+        return (
+          <input
+            // biome-ignore lint/a11y/noAutofocus: <explanation>
+            autoFocus={true}
+            className={"w-full focus:ring"}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onBlur={handleSave}
+          />
+        );
+      }
       let finalValue = value;
       if (
         formatDates &&
@@ -43,43 +69,18 @@ const buildColumns = <T,>({
       ) {
         finalValue = new Date(value as string).toLocaleString();
       }
-      if (showImagesPreview && typeof value === "string" && isUrl(value)) {
-        const isImage = isImageUrl(value);
-        return (
-          <a
-            href={value}
-            target={"_blank"}
-            className={cn("hover:underline")}
-            rel="noreferrer"
-          >
-            <div
-              className={"flex items-center justify-between break-all gap-4"}
-            >
-              {value}
-              {isImage && (
-                <img
-                  src={value}
-                  alt={"preview"}
-                  className="size-20 object-cover"
-                />
-              )}
-            </div>
-          </a>
-        );
+      if (typeof value === "string" && isUrl(value)) {
+        return <UrlWithPreview url={value} />;
       }
       if (typeof finalValue === "boolean") {
         finalValue = finalValue ? "true" : "false";
       }
       return (
-        <div
-          className={cn(
-            "break-all",
-            ["integer", "int", "tinyint", "double"].includes(data_type) &&
-              "text-right",
-          )}
-        >
-          {finalValue}
-        </div>
+        <BodyCell
+          value={finalValue}
+          dataType={data_type}
+          onDoubleClick={handleDoubleClick}
+        />
       );
     },
   })) as ColumnDef<T>[];
@@ -91,13 +92,11 @@ export const useColumns = ({
 }: { dbName: string; tableName: string }) => {
   const { data: details } = useTableColumnsQuery({ dbName, tableName });
   const formatDates = useSettingsStore.use.formatDates();
-  const showImagesPreview = useSettingsStore.use.showImagesPreview();
 
   return useMemo(() => {
     return buildColumns({
       columns: details,
       formatDates,
-      showImagesPreview,
     });
-  }, [details, formatDates, showImagesPreview]);
+  }, [details, formatDates]);
 };
